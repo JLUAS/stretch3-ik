@@ -1,0 +1,7 @@
+Starting >>> stretch_robot_interface
+Finished <<< stretch_robot_interface [0.30s]
+Starting >>> stretch_custom_kinematics
+Finished <<< stretch_custom_kinematics [0.21s]
+
+Summary: 2 packages finished [0.70s]
+Summary: 21 tests, 0 errors, 0 failures, 0 skipped

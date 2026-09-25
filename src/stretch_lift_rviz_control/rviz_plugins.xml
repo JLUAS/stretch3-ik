@@ -1,0 +1,7 @@
+<library path="lift_control_panel">
+  <class name="stretch_lift_rviz_control/LiftControlPanel"
+         type="stretch_lift_rviz_control::LiftControlPanel"
+         base_class_type="rviz_common::Panel">
+    <description>Explicit absolute-target control for the guarded lift-only executor.</description>
+  </class>
+</library>

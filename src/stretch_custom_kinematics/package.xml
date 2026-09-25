@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>stretch_custom_kinematics</name>
+  <version>0.1.0</version>
+  <description>Read-only URDF-derived Stretch manipulation foundation.</description>
+  <maintainer email="maintainer@example.com">Workspace Maintainer</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>eigen</depend>
+  <depend>urdf</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>stretch_robot_interface</depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <depend>interactive_markers</depend>
+  <depend>visualization_msgs</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>std_msgs</depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>rcl_interfaces</exec_depend>
+  <depend>ament_index_cpp</depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <depend>rviz_common</depend>
+  <depend>pluginlib</depend>
+  <depend>qtbase5-dev</depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

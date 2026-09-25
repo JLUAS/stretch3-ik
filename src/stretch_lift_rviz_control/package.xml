@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>stretch_lift_rviz_control</name>
+  <version>0.1.0</version>
+  <description>Vertical-only RViz target selection and guarded Stretch lift execution UI.</description>
+  <maintainer email="maintainer@example.com">Stretch workspace maintainer</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>interactive_markers</depend>
+  <depend>visualization_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>ament_index_cpp</depend>
+  <depend>stretch_robot_interface</depend>
+  <depend>stretch_custom_kinematics</depend>
+  <depend>stretch_guarded_executor</depend>
+  <depend>rviz_common</depend>
+  <depend>pluginlib</depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

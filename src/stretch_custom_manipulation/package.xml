@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>stretch_custom_manipulation</name>
+  <version>0.1.0</version>
+  <description>Unified bringup for Stretch custom manipulation.</description>
+  <maintainer email="maintainer@example.com">Workspace Maintainer</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>stretch_robot_interface</exec_depend>
+  <exec_depend>stretch_custom_kinematics</exec_depend>
+  <exec_depend>stretch_guarded_executor</exec_depend>
+  <exec_depend>stretch_lift_rviz_control</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <test_depend>launch_testing</test_depend>
+  <test_depend>python3-numpy</test_depend>
+  <test_depend>python3-scipy</test_depend>
+  <test_depend>diagnostic_msgs</test_depend>
+  <test_depend>geometry_msgs</test_depend>
+  <test_depend>sensor_msgs</test_depend>
+  <test_depend>std_msgs</test_depend>
+  <test_depend>std_srvs</test_depend>
+  <test_depend>visualization_msgs</test_depend>
+  <test_depend>launch_testing_ament_cmake</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

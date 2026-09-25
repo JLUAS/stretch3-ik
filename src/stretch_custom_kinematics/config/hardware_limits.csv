@@ -1,0 +1,7 @@
+# Captured read-only /get_joint_states on 2026-09-24 UTC. Units m, m, rad, rad, rad.
+# Exact captured hardware bounds; runtime intersects with the live URDF.
+lift,0,1.0994316458886308
+arm_extension,0,0.51675546515114346
+wrist_yaw,-1.261060039374321,4.5009552951211198
+wrist_pitch,-1.5707963267948966,0.45099035163837853
+wrist_roll,-2.9114955354069467,2.9176314585584895

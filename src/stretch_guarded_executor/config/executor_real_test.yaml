@@ -1,0 +1,39 @@
+/guarded_executor/executor:
+
+  ros__parameters:
+
+    dry_run: true
+    execution_enabled: false
+
+    base_motion_enabled: false
+
+    diagnostic_error_to_warn_allowlist:
+      - "stretch_driver: Pimu/Cliff"
+
+    # New limited exception for Pimu temperature.
+    pimu_temperature_error_can_warn: true
+    pimu_temperature_warn_max_c: 50.0
+
+    use_sim_time: false
+
+    joint_state_topic: /stretch/joint_states
+    state_timeout: 0.5
+    # Measured domain-42 clock skew reached 0.109 s; fail closed at 0.150 s.
+    future_stamp_tolerance: 0.15
+
+    base_frame: base_link
+    tcp_frame: link_grasp_center
+
+    trajectory_action: /stretch_controller/follow_joint_trajectory
+
+    trajectory_duration: 3.0
+    lift_test_delta: 0.01
+
+    max_delta: [0.03, 0.03, 0.15, 0.15, 0.15]
+    max_velocity: [0.02, 0.02, 0.1, 0.1, 0.1]
+    max_acceleration: [0.02, 0.02, 0.1, 0.1, 0.1]
+    tracking_error: [0.01, 0.01, 0.05, 0.05, 0.05]
+    goal_tolerance: [0.0025, 0.0025, 0.015, 0.015, 0.015]
+    start_drift: [0.001, 0.001, 0.005, 0.005, 0.005]
+
+    dry_run_report_path: /tmp/stretch_guarded_executor_report.json

@@ -1,0 +1,13 @@
+/joint_state_publisher:
+  ros__parameters:
+    delta: 0.0
+    publish_default_efforts: false
+    publish_default_positions: true
+    publish_default_velocities: false
+    rate: 30.0
+    source_list:
+    - /stretch/joint_states
+    use_mimic_tags: true
+    use_sim_time: false
+    use_smallest_joint_limits: true
+

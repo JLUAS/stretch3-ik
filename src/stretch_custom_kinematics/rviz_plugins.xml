@@ -1,0 +1,5 @@
+<library path="ik_status_panel">
+  <class name="stretch_custom_kinematics/IkStatusPanel" type="stretch_custom_kinematics::IkStatusPanel" base_class_type="rviz_common::Panel">
+    <description>Read-only IK preview status, residuals, timing and joint solution.</description>
+  </class>
+</library>

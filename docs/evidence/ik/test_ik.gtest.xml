@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="10" failures="0" disabled="0" errors="0" time="0.912" timestamp="2026-09-23T20:06:20" name="AllTests">
+  <testsuite name="IK" tests="10" failures="0" disabled="0" errors="0" time="0.912" timestamp="2026-09-23T20:06:20">
+    <testcase name="HardwareIntersection" status="run" result="completed" time="0.028" timestamp="2026-09-23T20:06:20" classname="stretch_custom_kinematics.IK" />
+    <testcase name="InvalidTarget" status="run" result="completed" time="0.024" timestamp="2026-09-23T20:06:20" classname="stretch_custom_kinematics.IK" />
+    <testcase name="StaleState" status="run" result="completed" time="0.025" timestamp="2026-09-23T20:06:20" classname="stretch_custom_kinematics.IK" />
+    <testcase name="ExplicitUnreachablePoses" status="run" result="completed" time="0.024" timestamp="2026-09-23T20:06:20" classname="stretch_custom_kinematics.IK" />
+    <testcase name="SeedLimitViolation" status="run" result="completed" time="0.024" timestamp="2026-09-23T20:06:20" classname="stretch_custom_kinematics.IK" />
+    <testcase name="ActiveJointLimitFailure" status="run" result="completed" time="0.062" timestamp="2026-09-23T20:06:20" classname="stretch_custom_kinematics.IK" />
+    <testcase name="ConvergenceBudgetFailure" status="run" result="completed" time="0.023" timestamp="2026-09-23T20:06:20" classname="stretch_custom_kinematics.IK" />
+    <testcase name="TaskLeavesSpinAboutTargetZFree" status="run" result="completed" time="0.023" timestamp="2026-09-23T20:06:20" classname="stretch_custom_kinematics.IK" />
+    <testcase name="RandomFkIkFk" status="run" result="completed" time="0.679" timestamp="2026-09-23T20:06:20" classname="stretch_custom_kinematics.IK" />
+    <testcase name="MissingLimitFile" status="run" result="completed" time="0" timestamp="2026-09-23T20:06:21" classname="stretch_custom_kinematics.IK" />
+  </testsuite>
+</testsuites>

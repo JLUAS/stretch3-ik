@@ -1,0 +1,113 @@
+{
+  "status": {
+    "header": {
+      "stamp": {
+        "sec": 1790215490,
+        "nanosec": 623097862
+      },
+      "frame_id": ""
+    },
+    "status": [
+      {
+        "level": "\u0000",
+        "name": "ik_preview",
+        "message": "success",
+        "hardware_id": "",
+        "values": [
+          {
+            "key": "success",
+            "value": "true"
+          },
+          {
+            "key": "position_error_m",
+            "value": "6.26436516e-11"
+          },
+          {
+            "key": "direction_error_rad",
+            "value": "1.85361153e-10"
+          },
+          {
+            "key": "full_orientation_error_rad",
+            "value": "0.00459725143"
+          },
+          {
+            "key": "solve_time_ms",
+            "value": "0.066716"
+          },
+          {
+            "key": "iterations",
+            "value": "3"
+          },
+          {
+            "key": "attempts",
+            "value": "1"
+          },
+          {
+            "key": "seed_joint_state",
+            "value": "  0.76554661742167829 0.0024289817553295773    1.4854047296025961  -0.65807775800294011    -1.000155473701438"
+          },
+          {
+            "key": "seed_topic",
+            "value": "/stretch/joint_states"
+          },
+          {
+            "key": "seed_stamp",
+            "value": "1.79021549e+09"
+          },
+          {
+            "key": "task",
+            "value": "XYZ + TCP local Z unit direction; spin about Z unconstrained"
+          },
+          {
+            "key": "last_valid_joint_solution",
+            "value": "  0.80084226887452326 0.0010562119618664873    1.4822789701360661  -0.65267257192851036   -1.0020585918591269"
+          }
+        ]
+      }
+    ]
+  },
+  "target_pose": {
+    "header": {
+      "stamp": {
+        "sec": 1790215490,
+        "nanosec": 623238366
+      },
+      "frame_id": "ik_preview/base_link"
+    },
+    "pose": {
+      "position": {
+        "x": 0.1558377742767334,
+        "y": -0.16913489997386932,
+        "z": 0.7288712859153748
+      },
+      "orientation": {
+        "x": -0.4313095211982727,
+        "y": 0.31181997060775757,
+        "z": 0.132078617811203,
+        "w": 0.8362389802932739
+      }
+    }
+  },
+  "solved_pose": {
+    "header": {
+      "stamp": {
+        "sec": 1790215490,
+        "nanosec": 623238366
+      },
+      "frame_id": "ik_preview/base_link"
+    },
+    "pose": {
+      "position": {
+        "x": 0.15583777422995004,
+        "y": -0.169134899979102,
+        "z": 0.7288712859567047
+      },
+      "orientation": {
+        "x": -0.4320251405911277,
+        "y": 0.31082772993898383,
+        "z": 0.13015607080927089,
+        "w": 0.8365403740583516
+      }
+    }
+  }
+}

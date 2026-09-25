@@ -1,0 +1,6 @@
+samples=1000 successes=1000 success_rate=1
+position_m mean=1.11725495695e-07 max=9.94371134511e-07
+direction_rad mean=2.98097672086e-07 max=7.64977153801e-06
+full_orientation_rad mean=0.0652155105073 max=2.13626313753
+solve_ms mean=4.375595853 max=120.008443
+iterations mean=257.484 max=6891

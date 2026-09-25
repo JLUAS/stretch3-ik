@@ -1,0 +1,75 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: stretch_lift_rviz_control/LiftControlPanel
+    Name: Lift Control
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Name: Grid
+      Plane: XY
+      Reference Frame: <Fixed Frame>
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_description
+      Enabled: true
+      Name: Measured Robot
+      Visual Enabled: true
+    - Class: rviz_default_plugins/InteractiveMarkers
+      Enable Transparency: true
+      Enabled: true
+      Name: Lift Target — Z Only
+      Show Axes: false
+      Show Descriptions: true
+      Show Visual Aids: true
+      Update Topic: /lift_control/target/update
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Marker Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /lift_control/visualization
+      Name: Measured and Selected Lift
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: base_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 2.2
+      Focal Point:
+        X: 0.1
+        Y: 0.0
+        Z: 0.65
+      Name: Current View
+      Pitch: 0.35
+      Target Frame: base_link
+      Yaw: 0.8
+Window Geometry:
+  Height: 900
+  Width: 1400

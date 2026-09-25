@@ -1,0 +1,146 @@
+[INFO] [launch]: All log files can be found below /home/jose/.ros/log/2026-09-23-20-06-19-568798-jose-LOQ-16APH8-22682
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [offline_seed.py-1]: process started with pid [22683]
+[INFO] [robot_state_publisher-2]: process started with pid [22685]
+[INFO] [ik_preview-3]: process started with pid [22687]
+[INFO] [rviz2-4]: process started with pid [22689]
+[rviz2-4] Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
+[robot_state_publisher-2] [WARN] [1790215579.723911280] [kdl_parser]: The root link base_link has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.
+[robot_state_publisher-2] [INFO] [1790215579.724045382] [ik_input.robot_state_publisher]: got segment base_imu
+[robot_state_publisher-2] [INFO] [1790215579.724102008] [ik_input.robot_state_publisher]: got segment base_link
+[robot_state_publisher-2] [INFO] [1790215579.724108019] [ik_input.robot_state_publisher]: got segment camera_accel_frame
+[robot_state_publisher-2] [INFO] [1790215579.724112578] [ik_input.robot_state_publisher]: got segment camera_accel_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724117457] [ik_input.robot_state_publisher]: got segment camera_bottom_screw_frame
+[robot_state_publisher-2] [INFO] [1790215579.724121505] [ik_input.robot_state_publisher]: got segment camera_color_frame
+[robot_state_publisher-2] [INFO] [1790215579.724125252] [ik_input.robot_state_publisher]: got segment camera_color_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724129059] [ik_input.robot_state_publisher]: got segment camera_depth_frame
+[robot_state_publisher-2] [INFO] [1790215579.724131995] [ik_input.robot_state_publisher]: got segment camera_depth_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724134800] [ik_input.robot_state_publisher]: got segment camera_gyro_frame
+[robot_state_publisher-2] [INFO] [1790215579.724137615] [ik_input.robot_state_publisher]: got segment camera_gyro_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724140390] [ik_input.robot_state_publisher]: got segment camera_infra1_frame
+[robot_state_publisher-2] [INFO] [1790215579.724143476] [ik_input.robot_state_publisher]: got segment camera_infra1_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724146271] [ik_input.robot_state_publisher]: got segment camera_infra2_frame
+[robot_state_publisher-2] [INFO] [1790215579.724149197] [ik_input.robot_state_publisher]: got segment camera_infra2_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724151952] [ik_input.robot_state_publisher]: got segment camera_link
+[robot_state_publisher-2] [INFO] [1790215579.724154918] [ik_input.robot_state_publisher]: got segment caster_link
+[robot_state_publisher-2] [INFO] [1790215579.724157683] [ik_input.robot_state_publisher]: got segment gripper_camera_bottom_screw_frame
+[robot_state_publisher-2] [INFO] [1790215579.724160558] [ik_input.robot_state_publisher]: got segment gripper_camera_color_frame
+[robot_state_publisher-2] [INFO] [1790215579.724163404] [ik_input.robot_state_publisher]: got segment gripper_camera_color_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724166269] [ik_input.robot_state_publisher]: got segment gripper_camera_depth_frame
+[robot_state_publisher-2] [INFO] [1790215579.724169064] [ik_input.robot_state_publisher]: got segment gripper_camera_depth_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724171930] [ik_input.robot_state_publisher]: got segment gripper_camera_infra1_frame
+[robot_state_publisher-2] [INFO] [1790215579.724174625] [ik_input.robot_state_publisher]: got segment gripper_camera_infra1_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724177340] [ik_input.robot_state_publisher]: got segment gripper_camera_infra2_frame
+[robot_state_publisher-2] [INFO] [1790215579.724180135] [ik_input.robot_state_publisher]: got segment gripper_camera_infra2_optical_frame
+[robot_state_publisher-2] [INFO] [1790215579.724182980] [ik_input.robot_state_publisher]: got segment gripper_camera_link
+[robot_state_publisher-2] [INFO] [1790215579.724185766] [ik_input.robot_state_publisher]: got segment laser
+[robot_state_publisher-2] [INFO] [1790215579.724188701] [ik_input.robot_state_publisher]: got segment link_arm_l0
+[robot_state_publisher-2] [INFO] [1790215579.724191566] [ik_input.robot_state_publisher]: got segment link_arm_l1
+[robot_state_publisher-2] [INFO] [1790215579.724194332] [ik_input.robot_state_publisher]: got segment link_arm_l2
+[robot_state_publisher-2] [INFO] [1790215579.724196957] [ik_input.robot_state_publisher]: got segment link_arm_l3
+[robot_state_publisher-2] [INFO] [1790215579.724199642] [ik_input.robot_state_publisher]: got segment link_arm_l4
+[robot_state_publisher-2] [INFO] [1790215579.724202337] [ik_input.robot_state_publisher]: got segment link_aruco_d405
+[robot_state_publisher-2] [INFO] [1790215579.724205082] [ik_input.robot_state_publisher]: got segment link_aruco_fingertip_left
+[robot_state_publisher-2] [INFO] [1790215579.724207787] [ik_input.robot_state_publisher]: got segment link_aruco_fingertip_right
+[robot_state_publisher-2] [INFO] [1790215579.724210492] [ik_input.robot_state_publisher]: got segment link_aruco_inner_wrist
+[robot_state_publisher-2] [INFO] [1790215579.724213598] [ik_input.robot_state_publisher]: got segment link_aruco_left_base
+[robot_state_publisher-2] [INFO] [1790215579.724216613] [ik_input.robot_state_publisher]: got segment link_aruco_right_base
+[robot_state_publisher-2] [INFO] [1790215579.724219449] [ik_input.robot_state_publisher]: got segment link_aruco_shoulder
+[robot_state_publisher-2] [INFO] [1790215579.724235940] [ik_input.robot_state_publisher]: got segment link_aruco_top_wrist
+[robot_state_publisher-2] [INFO] [1790215579.724239206] [ik_input.robot_state_publisher]: got segment link_grasp_center
+[robot_state_publisher-2] [INFO] [1790215579.724242893] [ik_input.robot_state_publisher]: got segment link_gripper_finger_left
+[robot_state_publisher-2] [INFO] [1790215579.724245828] [ik_input.robot_state_publisher]: got segment link_gripper_finger_right
+[robot_state_publisher-2] [INFO] [1790215579.724248684] [ik_input.robot_state_publisher]: got segment link_gripper_fingertip_left
+[robot_state_publisher-2] [INFO] [1790215579.724252421] [ik_input.robot_state_publisher]: got segment link_gripper_fingertip_right
+[robot_state_publisher-2] [INFO] [1790215579.724255296] [ik_input.robot_state_publisher]: got segment link_gripper_s3_body
+[robot_state_publisher-2] [INFO] [1790215579.724258332] [ik_input.robot_state_publisher]: got segment link_head
+[robot_state_publisher-2] [INFO] [1790215579.724261307] [ik_input.robot_state_publisher]: got segment link_head_nav_cam
+[robot_state_publisher-2] [INFO] [1790215579.724264263] [ik_input.robot_state_publisher]: got segment link_head_pan
+[robot_state_publisher-2] [INFO] [1790215579.724267098] [ik_input.robot_state_publisher]: got segment link_head_tilt
+[robot_state_publisher-2] [INFO] [1790215579.724269954] [ik_input.robot_state_publisher]: got segment link_left_wheel
+[robot_state_publisher-2] [INFO] [1790215579.724272789] [ik_input.robot_state_publisher]: got segment link_lift
+[robot_state_publisher-2] [INFO] [1790215579.724275765] [ik_input.robot_state_publisher]: got segment link_mast
+[robot_state_publisher-2] [INFO] [1790215579.724278550] [ik_input.robot_state_publisher]: got segment link_right_wheel
+[robot_state_publisher-2] [INFO] [1790215579.724281435] [ik_input.robot_state_publisher]: got segment link_wrist_pitch
+[robot_state_publisher-2] [INFO] [1790215579.724284311] [ik_input.robot_state_publisher]: got segment link_wrist_quick_connect
+[robot_state_publisher-2] [INFO] [1790215579.724287417] [ik_input.robot_state_publisher]: got segment link_wrist_roll
+[robot_state_publisher-2] [INFO] [1790215579.724290192] [ik_input.robot_state_publisher]: got segment link_wrist_yaw
+[robot_state_publisher-2] [INFO] [1790215579.724292877] [ik_input.robot_state_publisher]: got segment link_wrist_yaw_bottom
+[robot_state_publisher-2] [INFO] [1790215579.724295762] [ik_input.robot_state_publisher]: got segment respeaker_base
+[ik_preview-3] [INFO] [1790215579.745100491] [ik_preview.ik_preview]: URDF accepted: base_link -> link_grasp_center
+[ik_preview-3] [WARN] [1790215579.809905579] [ik_preview.ik_preview]: stale state: waiting for current logical seed
+[rviz2-4] [INFO] [1790215579.921994327] [rviz2]: Stereo is NOT SUPPORTED
+[rviz2-4] [INFO] [1790215579.922060481] [rviz2]: OpenGl version: 4.6 (GLSL 4.6)
+[rviz2-4] [INFO] [1790215579.933150137] [rviz2]: Stereo is NOT SUPPORTED
+[rviz2-4] [INFO] [1790215579.989445397] [ik_preview.rviz]: Connected on namespace: /ik_preview/target
+[rviz2-4] [INFO] [1790215581.367240947] [ik_preview.rviz]: Sending request for interactive markers
+[rviz2-4] [INFO] [1790215581.382823004] [ik_preview.rviz]: Service response received for initialization
+[ik_preview-3] [INFO] [1790215581.706887149] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215583.706766388] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215585.706728144] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215587.706624527] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215589.706750192] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215591.706682445] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215593.706750644] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215595.706725447] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215597.706653545] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215599.706776129] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215601.706727933] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215603.706715044] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215605.706717244] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215607.706620290] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215609.706672275] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215611.706696089] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215613.706680730] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215615.706697804] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215617.706623015] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215619.706753854] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215621.706649760] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215623.706601444] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215625.706704643] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215627.706584863] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215629.706611880] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215631.706595789] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215633.706577151] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215635.706663423] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215637.706575378] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215639.706634600] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215641.706613099] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215643.706583223] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215645.706722418] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215647.706563695] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215649.706655141] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215651.706578663] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215653.706635083] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215655.706579408] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215657.706643647] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215659.706578702] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215661.706622985] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215663.706575766] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215665.706674462] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215667.706985468] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215669.706639289] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215671.706569150] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215673.706649516] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215675.706550135] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215677.706613649] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215679.706640738] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215681.706610197] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215683.706548860] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215685.706624058] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215687.706604924] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215689.706585446] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[ik_preview-3] [INFO] [1790215691.706617148] [ik_preview.ik_preview]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.6, 0.1, 0, -0.6, 0]
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [rviz2-4]: sending signal 'SIGINT' to process[rviz2-4]
+[INFO] [ik_preview-3]: sending signal 'SIGINT' to process[ik_preview-3]
+[INFO] [robot_state_publisher-2]: sending signal 'SIGINT' to process[robot_state_publisher-2]
+[INFO] [offline_seed.py-1]: sending signal 'SIGINT' to process[offline_seed.py-1]
+[rviz2-4] [INFO] [1790215691.969644773] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[ik_preview-3] [INFO] [1790215691.969964664] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[robot_state_publisher-2] [INFO] [1790215691.970304161] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[rviz2-4] [WARN] [1790215691.975314886] [ik_preview.rviz]: Server not available while running, resetting
+[INFO] [robot_state_publisher-2]: process has finished cleanly [pid 22685]
+[INFO] [ik_preview-3]: process has finished cleanly [pid 22687]
+[INFO] [offline_seed.py-1]: process has finished cleanly [pid 22683]
+[INFO] [rviz2-4]: process has finished cleanly [pid 22689]

@@ -1,0 +1,33 @@
+{
+  "fk_tf_input": {
+    "comparisons": 836,
+    "threshold_failures": 0,
+    "max_position_m": 8.70907205360194e-16,
+    "rms_position_m": 6.3508071278815435e-16,
+    "max_position_mm": 8.70907205360194e-13,
+    "rms_position_mm": 6.350807127881543e-13,
+    "max_orientation_rad": 1.9891280697202817e-15,
+    "rms_orientation_rad": 1.3930992461230169e-15,
+    "max_orientation_deg": 1.139686433059763e-13,
+    "rms_orientation_deg": 7.981870724570591e-14,
+    "skipped_no_exact_tf": 6,
+    "skipped_old": 0,
+    "tf_lookup_failures": 0,
+    "position_tolerance_m": 1e-08,
+    "orientation_tolerance_rad": 1e-08
+  },
+  "fk_canonical": {
+    "comparisons": 886,
+    "threshold_failures": 111,
+    "max_position_m": 0.00041683801529098066,
+    "rms_position_m": 0.0001369242814502666,
+    "max_position_mm": 0.4168380152909807,
+    "rms_position_mm": 0.13692428145026664,
+    "max_orientation_rad": 0.002099890194064859,
+    "rms_orientation_rad": 0.0005354134864414837,
+    "max_orientation_deg": 0.12031484556082381,
+    "rms_orientation_deg": 0.030676933067481933,
+    "position_tolerance_m": 0.001,
+    "orientation_tolerance_rad": 0.001
+  }
+}

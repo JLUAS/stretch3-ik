@@ -1,0 +1,36 @@
+/ik_preview/ik_preview
+  Subscribers:
+    /ik_preview/target/feedback: visualization_msgs/msg/InteractiveMarkerFeedback
+    /is_homed: std_msgs/msg/Bool
+    /is_runstopped: std_msgs/msg/Bool
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /robot_description: std_msgs/msg/String
+    /stretch/joint_states: sensor_msgs/msg/JointState
+    /tf: tf2_msgs/msg/TFMessage
+    /tf_static: tf2_msgs/msg/TFMessage
+  Publishers:
+    /ik_preview/joint_states: sensor_msgs/msg/JointState
+    /ik_preview/markers: visualization_msgs/msg/MarkerArray
+    /ik_preview/robot_description: std_msgs/msg/String
+    /ik_preview/solved_pose: geometry_msgs/msg/PoseStamped
+    /ik_preview/status: diagnostic_msgs/msg/DiagnosticArray
+    /ik_preview/target/update: visualization_msgs/msg/InteractiveMarkerUpdate
+    /ik_preview/target_pose: geometry_msgs/msg/PoseStamped
+    /ik_preview/tf: tf2_msgs/msg/TFMessage
+    /ik_preview/tf_static: tf2_msgs/msg/TFMessage
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+  Service Servers:
+    /ik_preview/ik_preview/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /ik_preview/ik_preview/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /ik_preview/ik_preview/get_parameters: rcl_interfaces/srv/GetParameters
+    /ik_preview/ik_preview/list_parameters: rcl_interfaces/srv/ListParameters
+    /ik_preview/ik_preview/set_parameters: rcl_interfaces/srv/SetParameters
+    /ik_preview/ik_preview/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+    /ik_preview/target/get_interactive_markers: visualization_msgs/srv/GetInteractiveMarkers
+  Service Clients:
+
+  Action Servers:
+
+  Action Clients:
+

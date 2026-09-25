@@ -1,0 +1,11 @@
+float64 target_position
+---
+bool success
+float64 final_position
+string message
+---
+float64 current_position
+float64 target_position
+uint32 current_segment
+uint32 total_segments
+string state

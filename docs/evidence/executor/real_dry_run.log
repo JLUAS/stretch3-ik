@@ -1,0 +1,10 @@
+[INFO] [1790218057.487584541] [guarded_executor.executor]: Startup DISARMED; dry_run=1 execution_enabled=0 hardware_action_client=0
+[INFO] [1790218059.485138752] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=0 joints=0 fresh_valid=0 tf=0 tf_static=0 homed_read=0 runstop_read=0 reason=Waiting for joint state
+[INFO] [1790218062.034946899] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=0 joints=0 fresh_valid=0 tf=0 tf_static=0 homed_read=1 runstop_read=1 reason=No valid robot_description
+[INFO] [1790218062.132446189] [guarded_executor.executor]: URDF accepted: base_link -> link_grasp_center
+[INFO] [1790218063.485643004] [guarded_executor.executor]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.765463, 0.00242539, 1.4854, -0.658078, -1.00016]
+[INFO] [1790218064.689939145] [guarded_executor.executor]: Startup DISARMED; dry_run=1 execution_enabled=1 hardware_action_client=0
+[INFO] [1790218066.686109375] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=0 joints=0 fresh_valid=0 tf=0 tf_static=0 homed_read=1 runstop_read=1 reason=Waiting for joint state
+[INFO] [1790218067.703652176] [guarded_executor.executor]: URDF accepted: base_link -> link_grasp_center
+[INFO] [1790218068.686154522] [guarded_executor.executor]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.76546, 0.0024206, 1.4854, -0.658078, -1.00016]
+[INFO] [1790218070.686092526] [guarded_executor.executor]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.765467, 0.00242539, 1.4854, -0.658078, -1.00016]

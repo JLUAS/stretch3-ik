@@ -1,0 +1,10 @@
+[INFO] [launch]: All log files can be found below /home/jose/.ros/log/2026-09-23-20-49-26-629619-jose-LOQ-16APH8-31985
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [guarded_executor-1]: process started with pid [31986]
+[guarded_executor-1] [INFO] [1790218166.703502557] [guarded_executor.executor]: Startup DISARMED; dry_run=1 execution_enabled=0 hardware_action_client=0
+[guarded_executor-1] [INFO] [1790218168.699621355] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=0 joints=0 fresh_valid=0 tf=1 tf_static=0 homed_read=1 runstop_read=0 reason=Waiting for joint state
+[guarded_executor-1] [INFO] [1790218169.364221507] [guarded_executor.executor]: URDF accepted: base_link -> link_grasp_center
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [guarded_executor-1]: sending signal 'SIGINT' to process[guarded_executor-1]
+[guarded_executor-1] [INFO] [1790218170.699699028] [guarded_executor.executor]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.76547, 0.00241821, 1.4854, -0.658078, -1.00016]
+[INFO] [guarded_executor-1]: process has finished cleanly [pid 31986]

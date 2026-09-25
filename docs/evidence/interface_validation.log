@@ -1,0 +1,14 @@
+[INFO] [1790212767.878183197] [interface_validator]: URDF accepted: base_link -> link_grasp_center
+[INFO] [1790212768.494728689] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599815, 0.1, 0.00511327, -0.638136, -0.00153398]
+[INFO] [1790212770.494810208] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599823, 0.100002, 0.00511327, -0.638136, -0.00153398]
+[INFO] [1790212772.494690823] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599815, 0.100002, 0.00511327, -0.638136, -0.00153398]
+[INFO] [1790212774.494902672] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599815, 0.100005, 0.00511327, -0.63967, -0.00153398]
+[INFO] [1790212776.494692511] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599818, 0.0999953, 0.00511327, -0.638136, -0.00153398]
+[INFO] [1790212778.494818106] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599827, 0.100011, 0.00511327, -0.638136, -0.00153398]
+[INFO] [1790212780.494576400] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599815, 0.100002, 0.00511327, -0.638136, -0.00153398]
+[INFO] [1790212782.494641587] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599823, 0.0999953, 0.00511327, -0.638136, -0.00306796]
+[INFO] [1790212784.494597930] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599815, 0.1, 0.00511327, -0.63967, -0.00153398]
+[INFO] [1790212786.494556437] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599818, 0.100002, 0.00511327, -0.638136, -0.00153398]
+[INFO] [1790212788.494613994] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599827, 0.1, 0.00511327, -0.63967, -0.00153398]
+[INFO] [1790212790.494536679] [interface_validator]: READ-ONLY interface PASS model=1 joints=1 fresh_valid=1 tf=1 tf_static=1 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.599827, 0.100005, 0.00511327, -0.638136, -0.00153398]
+[INFO] [1790212791.362728938] [rclcpp]: signal_handler(SIGINT/SIGTERM)

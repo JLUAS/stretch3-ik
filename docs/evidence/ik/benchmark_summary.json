@@ -1,0 +1,31 @@
+{
+  "random_seed": 20260924,
+  "samples": 1000,
+  "successes": 1000,
+  "success_rate": 1.0,
+  "seed_policy": "First attempt: same captured measured current state for every target; deterministic bounded fallback restarts.",
+  "position_m": {
+    "mean": 1.117254956947514e-07,
+    "max": 9.943711345105386e-07
+  },
+  "direction_rad": {
+    "mean": 2.9809767208637203e-07,
+    "max": 7.64977153801085e-06
+  },
+  "orientation_rad": {
+    "mean": 0.06521551050730762,
+    "max": 2.136263137528188
+  },
+  "solve_ms": {
+    "mean": 4.375595853,
+    "max": 120.008443
+  },
+  "iterations": {
+    "mean": 257.484,
+    "max": 6891.0
+  },
+  "attempts": {
+    "mean": 2.523,
+    "max": 44.0
+  }
+}

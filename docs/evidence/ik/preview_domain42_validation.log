@@ -1,0 +1,53 @@
+{
+  "domain": "42",
+  "tests": {
+    "reachable_marker_feedback": {
+      "success": "true",
+      "position_error_m": "8.64771125e-11",
+      "direction_error_rad": "2.56372737e-10",
+      "full_orientation_error_rad": "0.00510162392",
+      "solve_time_ms": "0.074089",
+      "iterations": "3",
+      "attempts": "1",
+      "seed_joint_state": "  0.76555164444090751 0.0024253905740611943    1.4854047296025961  -0.65807775800294011    -1.000155473701438",
+      "seed_topic": "/stretch/joint_states",
+      "seed_stamp": "1.79021531e+09",
+      "task": "XYZ + TCP local Z unit direction; spin about Z unconstrained",
+      "last_valid_joint_solution": "   0.80470277398933898 0.00090647408501267929     1.4819371886388466   -0.65224756427375696    -1.0022660664501686"
+    },
+    "ghost_tf_matches_fk": true,
+    "unreachable_preserves_last_valid_ghost": true,
+    "invalid_target_frame": true
+  },
+  "robot_topic_publishers": {
+    "/joint_states": [
+      "/joint_state_publisher"
+    ],
+    "/stretch/joint_states": [
+      "_NODE_NAMESPACE_UNKNOWN_/_NODE_NAME_UNKNOWN_"
+    ],
+    "/tf": [
+      "/robot_state_publisher"
+    ],
+    "/tf_static": [
+      "/robot_state_publisher",
+      "/camera"
+    ],
+    "/joint_pose_cmd": [],
+    "/stretch/cmd_vel": []
+  },
+  "preview_publishers": [
+    "/ik_preview/joint_states",
+    "/ik_preview/markers",
+    "/ik_preview/robot_description",
+    "/ik_preview/solved_pose",
+    "/ik_preview/status",
+    "/ik_preview/target/update",
+    "/ik_preview/target_pose",
+    "/ik_preview/tf",
+    "/ik_preview/tf_static",
+    "/parameter_events",
+    "/rosout"
+  ],
+  "preview_action_clients": "checked separately with ros2 node info"
+}

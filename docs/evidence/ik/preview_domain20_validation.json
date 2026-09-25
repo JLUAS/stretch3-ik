@@ -1,0 +1,46 @@
+{
+  "domain": "20",
+  "tests": {
+    "reachable_marker_feedback": {
+      "success": "true",
+      "position_error_m": "1.34811317e-12",
+      "direction_error_rad": "2.35363315e-12",
+      "full_orientation_error_rad": "0.00302690084",
+      "solve_time_ms": "0.086803",
+      "iterations": "3",
+      "attempts": "1",
+      "seed_joint_state": " 0.59999999999999998  0.10000000000000001                    0 -0.59999999999999998                    0",
+      "seed_topic": "/ik_input/joint_states",
+      "seed_stamp_nanoseconds": "1790215619383192320",
+      "task": "XYZ + TCP local Z unit direction; spin about Z unconstrained",
+      "last_valid_joint_solution": "  0.64002029836200625  0.099245329518124786 0.0036674550936746293   -0.5999968718475811 0.0020707755363665844"
+    },
+    "ghost_tf_matches_fk": true,
+    "unreachable_preserves_last_valid_ghost": true,
+    "invalid_target_frame": true,
+    "stale_seed_rejected": true,
+    "fresh_seed_recovery": true
+  },
+  "robot_topic_publishers": {
+    "/joint_states": [],
+    "/stretch/joint_states": [],
+    "/tf": [],
+    "/tf_static": [],
+    "/joint_pose_cmd": [],
+    "/stretch/cmd_vel": []
+  },
+  "preview_publishers": [
+    "/ik_preview/joint_states",
+    "/ik_preview/markers",
+    "/ik_preview/robot_description",
+    "/ik_preview/solved_pose",
+    "/ik_preview/status",
+    "/ik_preview/target/update",
+    "/ik_preview/target_pose",
+    "/ik_preview/tf",
+    "/ik_preview/tf_static",
+    "/parameter_events",
+    "/rosout"
+  ],
+  "preview_action_clients": "checked separately with ros2 node info"
+}

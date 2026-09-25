@@ -1,0 +1,1371 @@
+{
+  "/mode": {
+    "data": "position"
+  },
+  "/tool": {
+    "data": "eoa_wrist_dw3_tool_sg3"
+  },
+  "/is_streaming_position": {
+    "data": false
+  },
+  "/is_homed": {
+    "data": true
+  },
+  "/is_runstopped": {
+    "data": false
+  },
+  "/diagnostics": {
+    "header": {
+      "stamp": {
+        "sec": 1790216831,
+        "nanosec": 706574023
+      },
+      "frame_id": ""
+    },
+    "status": [
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Pimu/Device",
+        "message": "OK",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "voltage",
+            "value": "12.822668552398682"
+          },
+          {
+            "key": "current",
+            "value": "3.84011253276292"
+          },
+          {
+            "key": "temp",
+            "value": "31.927520648027077"
+          },
+          {
+            "key": "cpu_temp",
+            "value": "0"
+          },
+          {
+            "key": "cliff_range",
+            "value": "[-4.598876953125, 47.51861572265625, 6.6387939453125, 0.3563232421875]"
+          },
+          {
+            "key": "frame_id",
+            "value": "0"
+          },
+          {
+            "key": "timestamp",
+            "value": "-18444953852579.617"
+          },
+          {
+            "key": "at_cliff",
+            "value": "[False, False, False, False]"
+          },
+          {
+            "key": "runstop_event",
+            "value": "False"
+          },
+          {
+            "key": "bump_event_cnt",
+            "value": "10"
+          },
+          {
+            "key": "cliff_event",
+            "value": "False"
+          },
+          {
+            "key": "fan_on",
+            "value": "True"
+          },
+          {
+            "key": "buzzer_on",
+            "value": "False"
+          },
+          {
+            "key": "low_voltage_alert",
+            "value": "False"
+          },
+          {
+            "key": "high_current_alert",
+            "value": "False"
+          },
+          {
+            "key": "over_tilt_alert",
+            "value": "False"
+          },
+          {
+            "key": "charger_connected",
+            "value": "True"
+          },
+          {
+            "key": "boot_detected",
+            "value": "True"
+          },
+          {
+            "key": "debug",
+            "value": "0.0"
+          },
+          {
+            "key": "state",
+            "value": "22592"
+          },
+          {
+            "key": "trace_on",
+            "value": "False"
+          },
+          {
+            "key": "motor_sync_rate",
+            "value": "0.8567012610815182"
+          },
+          {
+            "key": "motor_sync_cnt",
+            "value": "397"
+          },
+          {
+            "key": "motor_sync_queues",
+            "value": "0"
+          },
+          {
+            "key": "motor_sync_drop",
+            "value": "0"
+          },
+          {
+            "key": "current_charge",
+            "value": "0.0"
+          },
+          {
+            "key": "charger_is_charging",
+            "value": "True"
+          },
+          {
+            "key": "over_tilt_type",
+            "value": "None"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Pimu/Voltage",
+        "message": "OK",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "voltage",
+            "value": "12.822668552398682"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Pimu/Current",
+        "message": "OK",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "current",
+            "value": "3.84011253276292"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Pimu/Temperature",
+        "message": "OK",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "temp",
+            "value": "31.927520648027077"
+          }
+        ]
+      },
+      {
+        "level": "\u0002",
+        "name": "stretch_driver: Pimu/Cliff",
+        "message": "cliff_range=47.51861572265625 | out of range [-50,20]",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "cliff_range[0]",
+            "value": "-4.598876953125"
+          },
+          {
+            "key": "cliff_range[1]",
+            "value": "47.51861572265625"
+          },
+          {
+            "key": "cliff_range[2]",
+            "value": "6.6387939453125"
+          },
+          {
+            "key": "cliff_range[3]",
+            "value": "0.3563232421875"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Lift/Device",
+        "message": "Hardware present and calibrated",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "timestamp_pc",
+            "value": "1790216831.6746562"
+          },
+          {
+            "key": "pos",
+            "value": "0.765539987584724"
+          },
+          {
+            "key": "vel",
+            "value": "0.0004016925320073432"
+          },
+          {
+            "key": "force",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Lift/Motor",
+        "message": "OK",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "mode",
+            "value": "0"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "69.54560852050781"
+          },
+          {
+            "key": "effort_pct",
+            "value": "27.272787655101098"
+          },
+          {
+            "key": "current",
+            "value": "1.2000026568244484"
+          },
+          {
+            "key": "pos",
+            "value": "80.16716003417969"
+          },
+          {
+            "key": "vel",
+            "value": "0.04206514358520508"
+          },
+          {
+            "key": "err",
+            "value": "2.004861831665039"
+          },
+          {
+            "key": "diag",
+            "value": "16641"
+          },
+          {
+            "key": "timestamp",
+            "value": "1790216833.840106"
+          },
+          {
+            "key": "debug",
+            "value": "0.0"
+          },
+          {
+            "key": "guarded_event",
+            "value": "19874"
+          },
+          {
+            "key": "pos_calibrated",
+            "value": "True"
+          },
+          {
+            "key": "runstop_on",
+            "value": "False"
+          },
+          {
+            "key": "near_pos_setpoint",
+            "value": "False"
+          },
+          {
+            "key": "near_vel_setpoint",
+            "value": "False"
+          },
+          {
+            "key": "is_moving",
+            "value": "False"
+          },
+          {
+            "key": "is_moving_filtered",
+            "value": "False"
+          },
+          {
+            "key": "at_current_limit",
+            "value": "False"
+          },
+          {
+            "key": "is_mg_accelerating",
+            "value": "False"
+          },
+          {
+            "key": "is_mg_moving",
+            "value": "False"
+          },
+          {
+            "key": "calibration_rcvd",
+            "value": "True"
+          },
+          {
+            "key": "in_guarded_event",
+            "value": "False"
+          },
+          {
+            "key": "in_safety_event",
+            "value": "False"
+          },
+          {
+            "key": "waiting_on_sync",
+            "value": "False"
+          },
+          {
+            "key": "in_sync_mode",
+            "value": "True"
+          },
+          {
+            "key": "trace_on",
+            "value": "False"
+          },
+          {
+            "key": "ctrl_cycle_cnt",
+            "value": "46384"
+          },
+          {
+            "key": "waypoint_traj",
+            "value": "{'state': 'idle', 'setpoint': 0.0, 'segment_id': 0}"
+          },
+          {
+            "key": "voltage",
+            "value": "12.88359375"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Arm/Device",
+        "message": "Hardware present and calibrated",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "timestamp_pc",
+            "value": "1790216831.6747634"
+          },
+          {
+            "key": "pos",
+            "value": "0.0024253905740611943"
+          },
+          {
+            "key": "vel",
+            "value": "0.00014667368154552607"
+          },
+          {
+            "key": "force",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Arm/Motor",
+        "message": "OK",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "mode",
+            "value": "0"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "-1.1210387714598537e-44"
+          },
+          {
+            "key": "effort_pct",
+            "value": "-4.39623047631315e-45"
+          },
+          {
+            "key": "current",
+            "value": "-1.9343414095777866e-46"
+          },
+          {
+            "key": "pos",
+            "value": "0.35360369086265564"
+          },
+          {
+            "key": "vel",
+            "value": "0.021383918821811676"
+          },
+          {
+            "key": "err",
+            "value": "0.0"
+          },
+          {
+            "key": "diag",
+            "value": "16641"
+          },
+          {
+            "key": "timestamp",
+            "value": "1790216834.1361597"
+          },
+          {
+            "key": "debug",
+            "value": "0.0"
+          },
+          {
+            "key": "guarded_event",
+            "value": "9"
+          },
+          {
+            "key": "pos_calibrated",
+            "value": "True"
+          },
+          {
+            "key": "runstop_on",
+            "value": "False"
+          },
+          {
+            "key": "near_pos_setpoint",
+            "value": "False"
+          },
+          {
+            "key": "near_vel_setpoint",
+            "value": "False"
+          },
+          {
+            "key": "is_moving",
+            "value": "False"
+          },
+          {
+            "key": "is_moving_filtered",
+            "value": "False"
+          },
+          {
+            "key": "at_current_limit",
+            "value": "False"
+          },
+          {
+            "key": "is_mg_accelerating",
+            "value": "False"
+          },
+          {
+            "key": "is_mg_moving",
+            "value": "False"
+          },
+          {
+            "key": "calibration_rcvd",
+            "value": "True"
+          },
+          {
+            "key": "in_guarded_event",
+            "value": "False"
+          },
+          {
+            "key": "in_safety_event",
+            "value": "False"
+          },
+          {
+            "key": "waiting_on_sync",
+            "value": "False"
+          },
+          {
+            "key": "in_sync_mode",
+            "value": "True"
+          },
+          {
+            "key": "trace_on",
+            "value": "False"
+          },
+          {
+            "key": "ctrl_cycle_cnt",
+            "value": "46673"
+          },
+          {
+            "key": "waypoint_traj",
+            "value": "{'state': 'idle', 'setpoint': 0.0, 'segment_id': 0}"
+          },
+          {
+            "key": "voltage",
+            "value": "12.66875"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Base/Device",
+        "message": "Hardware present",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "timestamp_pc",
+            "value": "1790216831.6774786"
+          },
+          {
+            "key": "x",
+            "value": "-8.158914293677608e-06"
+          },
+          {
+            "key": "y",
+            "value": "7.073431285142817e-10"
+          },
+          {
+            "key": "theta",
+            "value": "6.283133802378864"
+          },
+          {
+            "key": "x_vel",
+            "value": "0.00025121136143127737"
+          },
+          {
+            "key": "y_vel",
+            "value": "0.0"
+          },
+          {
+            "key": "theta_vel",
+            "value": "-0.0006792630484683544"
+          },
+          {
+            "key": "pose_time_s",
+            "value": "3088.01800096035"
+          },
+          {
+            "key": "effort",
+            "value": "[0, 0]"
+          },
+          {
+            "key": "translation_force",
+            "value": "0"
+          },
+          {
+            "key": "rotation_torque",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Base/LeftWheel",
+        "message": "OK",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "mode",
+            "value": "8"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "-7.0208420753479"
+          },
+          {
+            "key": "effort_pct",
+            "value": "-2.7532714020972153"
+          },
+          {
+            "key": "current",
+            "value": "-0.12114394169227749"
+          },
+          {
+            "key": "pos",
+            "value": "-1.6084954738616943"
+          },
+          {
+            "key": "vel",
+            "value": "0.021807217970490456"
+          },
+          {
+            "key": "err",
+            "value": "-0.0003490072558633983"
+          },
+          {
+            "key": "diag",
+            "value": "16644"
+          },
+          {
+            "key": "timestamp",
+            "value": "1790216832.595999"
+          },
+          {
+            "key": "debug",
+            "value": "0.0"
+          },
+          {
+            "key": "guarded_event",
+            "value": "0"
+          },
+          {
+            "key": "pos_calibrated",
+            "value": "False"
+          },
+          {
+            "key": "runstop_on",
+            "value": "False"
+          },
+          {
+            "key": "near_pos_setpoint",
+            "value": "True"
+          },
+          {
+            "key": "near_vel_setpoint",
+            "value": "False"
+          },
+          {
+            "key": "is_moving",
+            "value": "False"
+          },
+          {
+            "key": "is_moving_filtered",
+            "value": "False"
+          },
+          {
+            "key": "at_current_limit",
+            "value": "False"
+          },
+          {
+            "key": "is_mg_accelerating",
+            "value": "False"
+          },
+          {
+            "key": "is_mg_moving",
+            "value": "False"
+          },
+          {
+            "key": "calibration_rcvd",
+            "value": "True"
+          },
+          {
+            "key": "in_guarded_event",
+            "value": "False"
+          },
+          {
+            "key": "in_safety_event",
+            "value": "False"
+          },
+          {
+            "key": "waiting_on_sync",
+            "value": "False"
+          },
+          {
+            "key": "in_sync_mode",
+            "value": "True"
+          },
+          {
+            "key": "trace_on",
+            "value": "False"
+          },
+          {
+            "key": "ctrl_cycle_cnt",
+            "value": "47156"
+          },
+          {
+            "key": "waypoint_traj",
+            "value": "{'state': 'idle', 'setpoint': 0.0, 'segment_id': 0}"
+          },
+          {
+            "key": "voltage",
+            "value": "12.590625"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Base/RightWheel",
+        "message": "OK",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "mode",
+            "value": "8"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "-2.614999771118164"
+          },
+          {
+            "key": "effort_pct",
+            "value": "-1.0254901063208484"
+          },
+          {
+            "key": "current",
+            "value": "-0.045121564678117336"
+          },
+          {
+            "key": "pos",
+            "value": "-0.6257006525993347"
+          },
+          {
+            "key": "vel",
+            "value": "0.002690262859687209"
+          },
+          {
+            "key": "err",
+            "value": "0.0"
+          },
+          {
+            "key": "diag",
+            "value": "16644"
+          },
+          {
+            "key": "timestamp",
+            "value": "1790216837.2840466"
+          },
+          {
+            "key": "debug",
+            "value": "0.0"
+          },
+          {
+            "key": "guarded_event",
+            "value": "0"
+          },
+          {
+            "key": "pos_calibrated",
+            "value": "False"
+          },
+          {
+            "key": "runstop_on",
+            "value": "False"
+          },
+          {
+            "key": "near_pos_setpoint",
+            "value": "True"
+          },
+          {
+            "key": "near_vel_setpoint",
+            "value": "False"
+          },
+          {
+            "key": "is_moving",
+            "value": "False"
+          },
+          {
+            "key": "is_moving_filtered",
+            "value": "False"
+          },
+          {
+            "key": "at_current_limit",
+            "value": "False"
+          },
+          {
+            "key": "is_mg_accelerating",
+            "value": "False"
+          },
+          {
+            "key": "is_mg_moving",
+            "value": "False"
+          },
+          {
+            "key": "calibration_rcvd",
+            "value": "True"
+          },
+          {
+            "key": "in_guarded_event",
+            "value": "False"
+          },
+          {
+            "key": "in_safety_event",
+            "value": "False"
+          },
+          {
+            "key": "waiting_on_sync",
+            "value": "False"
+          },
+          {
+            "key": "in_sync_mode",
+            "value": "True"
+          },
+          {
+            "key": "trace_on",
+            "value": "False"
+          },
+          {
+            "key": "ctrl_cycle_cnt",
+            "value": "50163"
+          },
+          {
+            "key": "waypoint_traj",
+            "value": "{'state': 'idle', 'setpoint': 0.0, 'segment_id': 0}"
+          },
+          {
+            "key": "voltage",
+            "value": "12.68828125"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Wacc/Device",
+        "message": "OK",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "ax",
+            "value": "9.656986236572266"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Head/head_pan",
+        "message": "Hardware present and calibrated",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "timestamp_pc",
+            "value": "1790216831.668352"
+          },
+          {
+            "key": "comm_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos",
+            "value": "0.007669903939428206"
+          },
+          {
+            "key": "vel",
+            "value": "0.0"
+          },
+          {
+            "key": "effort",
+            "value": "0.0"
+          },
+          {
+            "key": "temp",
+            "value": "39.0"
+          },
+          {
+            "key": "shutdown",
+            "value": "0"
+          },
+          {
+            "key": "hardware_error",
+            "value": "0"
+          },
+          {
+            "key": "input_voltage_error",
+            "value": "False"
+          },
+          {
+            "key": "overheating_error",
+            "value": "False"
+          },
+          {
+            "key": "motor_encoder_error",
+            "value": "False"
+          },
+          {
+            "key": "electrical_shock_error",
+            "value": "False"
+          },
+          {
+            "key": "overload_error",
+            "value": "False"
+          },
+          {
+            "key": "stalled",
+            "value": "True"
+          },
+          {
+            "key": "stall_overload",
+            "value": "False"
+          },
+          {
+            "key": "pos_ticks",
+            "value": "2804"
+          },
+          {
+            "key": "vel_ticks",
+            "value": "0"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "0"
+          },
+          {
+            "key": "watchdog_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos_pct",
+            "value": "0.1786352268667457"
+          },
+          {
+            "key": "gripper_conversion",
+            "value": "{'aperture_m': 0.00022967386311438734, 'finger_rad': 0.0006715610032584424, 'finger_effort': 0.0, 'finger_vel': 0.0}"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: Head/head_tilt",
+        "message": "Hardware present and calibrated",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "timestamp_pc",
+            "value": "1790216831.668352"
+          },
+          {
+            "key": "comm_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos",
+            "value": "0.007669903939428206"
+          },
+          {
+            "key": "vel",
+            "value": "0.0"
+          },
+          {
+            "key": "effort",
+            "value": "0.0"
+          },
+          {
+            "key": "temp",
+            "value": "39.0"
+          },
+          {
+            "key": "shutdown",
+            "value": "0"
+          },
+          {
+            "key": "hardware_error",
+            "value": "0"
+          },
+          {
+            "key": "input_voltage_error",
+            "value": "False"
+          },
+          {
+            "key": "overheating_error",
+            "value": "False"
+          },
+          {
+            "key": "motor_encoder_error",
+            "value": "False"
+          },
+          {
+            "key": "electrical_shock_error",
+            "value": "False"
+          },
+          {
+            "key": "overload_error",
+            "value": "False"
+          },
+          {
+            "key": "stalled",
+            "value": "True"
+          },
+          {
+            "key": "stall_overload",
+            "value": "False"
+          },
+          {
+            "key": "pos_ticks",
+            "value": "2804"
+          },
+          {
+            "key": "vel_ticks",
+            "value": "0"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "0"
+          },
+          {
+            "key": "watchdog_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos_pct",
+            "value": "0.1786352268667457"
+          },
+          {
+            "key": "gripper_conversion",
+            "value": "{'aperture_m': 0.00022967386311438734, 'finger_rad': 0.0006715610032584424, 'finger_effort': 0.0, 'finger_vel': 0.0}"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: EndOfArm/wrist_pitch",
+        "message": "Hardware present and calibrated",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "timestamp_pc",
+            "value": "1790216831.668352"
+          },
+          {
+            "key": "comm_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos",
+            "value": "0.007669903939428206"
+          },
+          {
+            "key": "vel",
+            "value": "0.0"
+          },
+          {
+            "key": "effort",
+            "value": "0.0"
+          },
+          {
+            "key": "temp",
+            "value": "39.0"
+          },
+          {
+            "key": "shutdown",
+            "value": "0"
+          },
+          {
+            "key": "hardware_error",
+            "value": "0"
+          },
+          {
+            "key": "input_voltage_error",
+            "value": "False"
+          },
+          {
+            "key": "overheating_error",
+            "value": "False"
+          },
+          {
+            "key": "motor_encoder_error",
+            "value": "False"
+          },
+          {
+            "key": "electrical_shock_error",
+            "value": "False"
+          },
+          {
+            "key": "overload_error",
+            "value": "False"
+          },
+          {
+            "key": "stalled",
+            "value": "True"
+          },
+          {
+            "key": "stall_overload",
+            "value": "False"
+          },
+          {
+            "key": "pos_ticks",
+            "value": "2804"
+          },
+          {
+            "key": "vel_ticks",
+            "value": "0"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "0"
+          },
+          {
+            "key": "watchdog_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos_pct",
+            "value": "0.1786352268667457"
+          },
+          {
+            "key": "gripper_conversion",
+            "value": "{'aperture_m': 0.00022967386311438734, 'finger_rad': 0.0006715610032584424, 'finger_effort': 0.0, 'finger_vel': 0.0}"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: EndOfArm/wrist_roll",
+        "message": "Hardware present and calibrated",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "timestamp_pc",
+            "value": "1790216831.668352"
+          },
+          {
+            "key": "comm_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos",
+            "value": "0.007669903939428206"
+          },
+          {
+            "key": "vel",
+            "value": "0.0"
+          },
+          {
+            "key": "effort",
+            "value": "0.0"
+          },
+          {
+            "key": "temp",
+            "value": "39.0"
+          },
+          {
+            "key": "shutdown",
+            "value": "0"
+          },
+          {
+            "key": "hardware_error",
+            "value": "0"
+          },
+          {
+            "key": "input_voltage_error",
+            "value": "False"
+          },
+          {
+            "key": "overheating_error",
+            "value": "False"
+          },
+          {
+            "key": "motor_encoder_error",
+            "value": "False"
+          },
+          {
+            "key": "electrical_shock_error",
+            "value": "False"
+          },
+          {
+            "key": "overload_error",
+            "value": "False"
+          },
+          {
+            "key": "stalled",
+            "value": "True"
+          },
+          {
+            "key": "stall_overload",
+            "value": "False"
+          },
+          {
+            "key": "pos_ticks",
+            "value": "2804"
+          },
+          {
+            "key": "vel_ticks",
+            "value": "0"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "0"
+          },
+          {
+            "key": "watchdog_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos_pct",
+            "value": "0.1786352268667457"
+          },
+          {
+            "key": "gripper_conversion",
+            "value": "{'aperture_m': 0.00022967386311438734, 'finger_rad': 0.0006715610032584424, 'finger_effort': 0.0, 'finger_vel': 0.0}"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: EndOfArm/wrist_yaw",
+        "message": "Hardware present and calibrated",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "timestamp_pc",
+            "value": "1790216831.668352"
+          },
+          {
+            "key": "comm_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos",
+            "value": "0.007669903939428206"
+          },
+          {
+            "key": "vel",
+            "value": "0.0"
+          },
+          {
+            "key": "effort",
+            "value": "0.0"
+          },
+          {
+            "key": "temp",
+            "value": "39.0"
+          },
+          {
+            "key": "shutdown",
+            "value": "0"
+          },
+          {
+            "key": "hardware_error",
+            "value": "0"
+          },
+          {
+            "key": "input_voltage_error",
+            "value": "False"
+          },
+          {
+            "key": "overheating_error",
+            "value": "False"
+          },
+          {
+            "key": "motor_encoder_error",
+            "value": "False"
+          },
+          {
+            "key": "electrical_shock_error",
+            "value": "False"
+          },
+          {
+            "key": "overload_error",
+            "value": "False"
+          },
+          {
+            "key": "stalled",
+            "value": "True"
+          },
+          {
+            "key": "stall_overload",
+            "value": "False"
+          },
+          {
+            "key": "pos_ticks",
+            "value": "2804"
+          },
+          {
+            "key": "vel_ticks",
+            "value": "0"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "0"
+          },
+          {
+            "key": "watchdog_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos_pct",
+            "value": "0.1786352268667457"
+          },
+          {
+            "key": "gripper_conversion",
+            "value": "{'aperture_m': 0.00022967386311438734, 'finger_rad': 0.0006715610032584424, 'finger_effort': 0.0, 'finger_vel': 0.0}"
+          }
+        ]
+      },
+      {
+        "level": "\u0000",
+        "name": "stretch_driver: EndOfArm/stretch_gripper",
+        "message": "Hardware present and calibrated",
+        "hardware_id": "stretch-se3-3075",
+        "values": [
+          {
+            "key": "timestamp_pc",
+            "value": "1790216831.668352"
+          },
+          {
+            "key": "comm_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos",
+            "value": "0.007669903939428206"
+          },
+          {
+            "key": "vel",
+            "value": "0.0"
+          },
+          {
+            "key": "effort",
+            "value": "0.0"
+          },
+          {
+            "key": "temp",
+            "value": "39.0"
+          },
+          {
+            "key": "shutdown",
+            "value": "0"
+          },
+          {
+            "key": "hardware_error",
+            "value": "0"
+          },
+          {
+            "key": "input_voltage_error",
+            "value": "False"
+          },
+          {
+            "key": "overheating_error",
+            "value": "False"
+          },
+          {
+            "key": "motor_encoder_error",
+            "value": "False"
+          },
+          {
+            "key": "electrical_shock_error",
+            "value": "False"
+          },
+          {
+            "key": "overload_error",
+            "value": "False"
+          },
+          {
+            "key": "stalled",
+            "value": "True"
+          },
+          {
+            "key": "stall_overload",
+            "value": "False"
+          },
+          {
+            "key": "pos_ticks",
+            "value": "2804"
+          },
+          {
+            "key": "vel_ticks",
+            "value": "0"
+          },
+          {
+            "key": "effort_ticks",
+            "value": "0"
+          },
+          {
+            "key": "watchdog_errors",
+            "value": "0"
+          },
+          {
+            "key": "pos_pct",
+            "value": "0.1786352268667457"
+          },
+          {
+            "key": "gripper_conversion",
+            "value": "{'aperture_m': 0.00022967386311438734, 'finger_rad': 0.0006715610032584424, 'finger_effort': 0.0, 'finger_vel': 0.0}"
+          }
+        ]
+      }
+    ]
+  },
+  "parameters": {
+    "values": []
+  }
+}

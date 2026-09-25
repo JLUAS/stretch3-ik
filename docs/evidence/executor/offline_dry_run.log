@@ -1,0 +1,10 @@
+[INFO] [1790218040.452747094] [guarded_executor.executor]: Startup DISARMED; dry_run=1 execution_enabled=0 hardware_action_client=0
+[INFO] [1790218040.619392647] [guarded_executor.executor]: URDF accepted: base_link -> link_grasp_center
+[INFO] [1790218042.450865154] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=1 joints=1 fresh_valid=1 tf=0 tf_static=0 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.5, 0.2, 0, 0, 0]
+[INFO] [1790218044.450818299] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=1 joints=1 fresh_valid=1 tf=0 tf_static=0 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.5, 0.2, 0, 0, 0]
+[INFO] [1790218046.200370675] [guarded_executor.executor]: Startup DISARMED; dry_run=1 execution_enabled=1 hardware_action_client=0
+[INFO] [1790218046.232947497] [guarded_executor.executor]: URDF accepted: base_link -> link_grasp_center
+[INFO] [1790218048.197518875] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=1 joints=1 fresh_valid=1 tf=0 tf_static=0 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.5, 0.2, 0, 0, 0]
+[INFO] [1790218050.197397608] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=1 joints=1 fresh_valid=1 tf=0 tf_static=0 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.5, 0.2, 0, 0, 0]
+[INFO] [1790218052.197202458] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=1 joints=1 fresh_valid=1 tf=0 tf_static=0 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.5, 0.2, 0, 0, 0]
+[INFO] [1790218054.197216682] [guarded_executor.executor]: READ-ONLY interface WAIT/FAIL model=1 joints=1 fresh_valid=0 tf=0 tf_static=0 homed_read=1 runstop_read=1 homed=1 runstopped=0 q=[0.5, 0.2, 0, 0, 0]

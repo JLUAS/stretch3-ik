@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>stretch_guarded_executor</name><version>0.1.0</version>
+  <description>Explicitly armed, bounded lift-only Stretch execution with transport-free dry run.</description>
+  <maintainer email="maintainer@example.com">Stretch workspace maintainer</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+  <depend>stretch_robot_interface</depend><depend>stretch_custom_kinematics</depend>
+  <depend>rclcpp</depend><depend>rclcpp_action</depend><depend>trajectory_msgs</depend>
+  <depend>control_msgs</depend><depend>action_msgs</depend><depend>diagnostic_msgs</depend>
+  <depend>rcl_interfaces</depend><depend>std_srvs</depend><depend>std_msgs</depend>
+  <depend>sensor_msgs</depend><depend>ament_index_cpp</depend>
+  <exec_depend>launch_ros</exec_depend><exec_depend>launch</exec_depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>rclpy</test_depend><test_depend>rosidl_runtime_py</test_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

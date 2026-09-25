@@ -1,0 +1,48 @@
+/stretch_driver
+  Subscribers:
+    /gamepad_joy: sensor_msgs/msg/Joy
+    /joint_pose_cmd: std_msgs/msg/Float64MultiArray
+    /stretch/cmd_vel: geometry_msgs/msg/Twist
+  Publishers:
+    /battery: sensor_msgs/msg/BatteryState
+    /diagnostics: diagnostic_msgs/msg/DiagnosticArray
+    /imu_mobile_base: sensor_msgs/msg/Imu
+    /imu_wrist: sensor_msgs/msg/Imu
+    /is_gamepad_dongle: std_msgs/msg/Bool
+    /is_homed: std_msgs/msg/Bool
+    /is_runstopped: std_msgs/msg/Bool
+    /is_streaming_position: std_msgs/msg/Bool
+    /joint_limits: sensor_msgs/msg/JointState
+    /magnetometer_mobile_base: sensor_msgs/msg/MagneticField
+    /mode: std_msgs/msg/String
+    /odom: nav_msgs/msg/Odometry
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+    /stretch/joint_states: sensor_msgs/msg/JointState
+    /stretch_gamepad_state: sensor_msgs/msg/Joy
+    /tool: std_msgs/msg/String
+  Service Servers:
+    /activate_streaming_position: std_srvs/srv/Trigger
+    /deactivate_streaming_position: std_srvs/srv/Trigger
+    /get_joint_states: std_srvs/srv/Trigger
+    /home_the_robot: std_srvs/srv/Trigger
+    /runstop: std_srvs/srv/SetBool
+    /self_collision_avoidance: std_srvs/srv/SetBool
+    /stop_the_robot: std_srvs/srv/Trigger
+    /stow_the_robot: std_srvs/srv/Trigger
+    /stretch_driver/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /stretch_driver/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /stretch_driver/get_parameters: rcl_interfaces/srv/GetParameters
+    /stretch_driver/list_parameters: rcl_interfaces/srv/ListParameters
+    /stretch_driver/set_parameters: rcl_interfaces/srv/SetParameters
+    /stretch_driver/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+    /switch_to_gamepad_mode: std_srvs/srv/Trigger
+    /switch_to_navigation_mode: std_srvs/srv/Trigger
+    /switch_to_position_mode: std_srvs/srv/Trigger
+    /switch_to_trajectory_mode: std_srvs/srv/Trigger
+  Service Clients:
+
+  Action Servers:
+    /stretch_controller/follow_joint_trajectory: control_msgs/action/FollowJointTrajectory
+  Action Clients:
+

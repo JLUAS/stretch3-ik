@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="11" failures="0" disabled="0" errors="0" time="0.219" timestamp="2026-09-23T19:24:47" name="AllTests">
+  <testsuite name="Mapping" tests="5" failures="0" disabled="0" errors="0" time="0.086" timestamp="2026-09-23T19:24:47">
+    <testcase name="NamesNotArrayOrder" status="run" result="completed" time="0.018" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Mapping" />
+    <testcase name="TelescopeSumAndExpansion" status="run" result="completed" time="0.017" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Mapping" />
+    <testcase name="RejectInconsistentAlias" status="run" result="completed" time="0.017" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Mapping" />
+    <testcase name="AliasOptionalStagesRequired" status="run" result="completed" time="0.017" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Mapping" />
+    <testcase name="RejectMissingMismatchedDuplicateNonfinite" status="run" result="completed" time="0.017" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Mapping" />
+  </testsuite>
+  <testsuite name="Limits" tests="2" failures="0" disabled="0" errors="0" time="0.034" timestamp="2026-09-23T19:24:47">
+    <testcase name="BoundariesAndViolation" status="run" result="completed" time="0.017" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Limits" />
+    <testcase name="PhysicalStageMustRespectLimit" status="run" result="completed" time="0.017" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Limits" />
+  </testsuite>
+  <testsuite name="Freshness" tests="1" failures="0" disabled="0" errors="0" time="0" timestamp="2026-09-23T19:24:47">
+    <testcase name="ReceiptAndHeaderBothRequired" status="run" result="completed" time="0" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Freshness" />
+  </testsuite>
+  <testsuite name="Model" tests="3" failures="0" disabled="0" errors="0" time="0.099" timestamp="2026-09-23T19:24:47">
+    <testcase name="MalformedAndAbsentLinks" status="run" result="completed" time="0.065" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Model" />
+    <testcase name="RejectMimicInsteadOfGuessing" status="run" result="completed" time="0.018" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Model" />
+    <testcase name="RejectNonparallelTelescope" status="run" result="completed" time="0.016" timestamp="2026-09-23T19:24:47" classname="stretch_robot_interface.Model" />
+  </testsuite>
+</testsuites>
