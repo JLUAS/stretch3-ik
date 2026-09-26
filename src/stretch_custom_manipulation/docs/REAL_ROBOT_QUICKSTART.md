@@ -7,10 +7,9 @@ runstop released, and the driver parameter
 `fail_if_motor_initial_point_is_not_trajectory_first_point=true`.
 
 ```bash
-source /opt/ros/humble/setup.bash
 cd ~/stretch_custom_manipulation_ws
-source install/setup.bash
-ros2 launch stretch_custom_manipulation bringup.launch.py sim:=false
+./src/stretch_custom_manipulation/scripts/run_manipulation.sh \
+  sim:=false dry_run:=false execution_enabled:=true
 ```
 
 Move the TCP marker in RViz to a valid solution and click **Move to goal**.
@@ -20,13 +19,20 @@ It checks the measured state in each segment and disarms upon completion.
 **DISARM / STOP** cancels the movement and all remaining segments.
 The panel shows the rejection reasons and the execution status.
 
-For local kinematic simulation use the same command with `sim:=true`.
+For local kinematic simulation use:
+
+```bash
+./src/stretch_custom_manipulation/scripts/run_manipulation.sh sim:=true
+```
+
 The simulation starts its own controller in domain 20 with local DDS and uses
 wall time. It does not simulate dynamics, contacts or obstacles.
 
-The unified launch allows execution in both modes but does not start movement
-by itself. For inspection without sending trajectories add `dry_run:=true`;
-to prevent execution, use `execution_enabled:=false`.
+The wrapper selects the correct ROS domain, resets the ROS daemon, sources the
+workspace and starts the unified bringup. For real-robot inspection without
+sending trajectories, use `sim:=false dry_run:=true execution_enabled:=true`.
+Setting `execution_enabled:=false` blocks validation/execution rather than
+simulating a move.
 
 The IK resolves XYZ plus the local Z direction of the TCP, with free rotation around Z.
 It does not move the base, gripper or head. It does not include collision planning:

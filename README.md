@@ -6,12 +6,31 @@
 source /opt/ros/humble/setup.bash
 cd ~/stretch_custom_manipulation_ws
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
-source install/setup.bash
-ros2 launch stretch_custom_manipulation bringup.launch.py sim:=true
+./src/stretch_custom_manipulation/scripts/run_manipulation.sh sim:=true
 ```
 
-For the real robot simply change to `sim:=false`. Move and orient the
-`target_tcp` marker until a valid IK is obtained and click **Move to goal** once.
+The wrapper selects domain 20 for simulation or domain 42 for the real robot,
+stops a stale ROS daemon, sources ROS and the workspace, and then starts the
+unified bringup. Do not invoke `bringup.launch.py` directly for the normal
+workflow.
+
+For real-robot inspection without physical movement, use:
+
+```bash
+./src/stretch_custom_manipulation/scripts/run_manipulation.sh \
+  sim:=false dry_run:=true execution_enabled:=true
+```
+
+After inspection, stop that process completely and explicitly enable physical
+execution with:
+
+```bash
+./src/stretch_custom_manipulation/scripts/run_manipulation.sh \
+  sim:=false dry_run:=false execution_enabled:=true
+```
+
+Move and orient the `target_tcp` marker until a valid IK is obtained and click
+**Move to goal** once.
 The click captures the goal and automatically executes the necessary segments.
 **DISARM / STOP** cancels the movement and any pending segments.
 Dragging the marker does not move the robot; clicks are rejected during execution.
@@ -28,9 +47,11 @@ requests trajectory mode when needed. It does not perform homing or release runs
 The driver must have `fail_if_motor_initial_point_is_not_trajectory_first_point=true`.
 There is no collision planning: the path must be free of obstacles.
 
-The unified launch enables execution and disables dry-run by default in both
-modes; it does not send movement until the button is clicked. For inspection without movement
-add `dry_run:=true`; to block execution, `execution_enabled:=false`.
+The wrapper forwards additional launch arguments unchanged. The bringup enables
+execution and disables dry-run by default, but it does not send movement until
+the button is clicked. Use the explicit real-robot commands above so the active
+mode is always visible in terminal history. Setting `execution_enabled:=false`
+blocks validation/execution rather than simulating a move.
 The old commissioning launches keep their conservative values.
 
 The integration test moves the five axes, verifies the measured TCP, and tests

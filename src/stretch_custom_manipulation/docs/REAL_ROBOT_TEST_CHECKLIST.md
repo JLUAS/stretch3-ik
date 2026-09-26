@@ -7,13 +7,14 @@ This checklist contains the hardware-only verification items that must be execut
 - [ ] Ensure `stretch_driver` is running and publishing `/stretch/joint_states`, `/tf`, `/robot_description`, and `/diagnostics` on Domain 42.
 - [ ] Ensure the hardware limits in `src/stretch_custom_kinematics/config/hardware_limits.csv` accurately reflect this specific robot's calibration.
 - [ ] Confirm the Pimu cliff range calibration is represented by `cliff_range_min: -100.0` and `cliff_range_max: 200.0` in `src/stretch_custom_manipulation/config/real.yaml`.
-- [ ] Confirm the Pimu temperature diagnostics are active and the robot is not currently overheating (temperature must be below 42.0 C).
+- [ ] Confirm the Pimu temperature diagnostics are active and the robot is not currently overheating (execution blocks above 50.0 C).
 
 ## 1. Dry-Run Commissioning (Safe Startup)
 
-Launch with default safe settings (`sim:=false`, `dry_run:=true`, `execution_enabled:=false`):
+Launch with dry-run enabled and command validation available:
 ```bash
-./src/stretch_custom_manipulation/scripts/run_manipulation.sh sim:=false
+./src/stretch_custom_manipulation/scripts/run_manipulation.sh \
+  sim:=false dry_run:=true execution_enabled:=true
 ```
 
 - [ ] **RViz Load**: Verify the white robot model correctly matches the physical pose of the real robot.
