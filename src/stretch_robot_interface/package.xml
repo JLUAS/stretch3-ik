@@ -2,8 +2,8 @@
 <package format="3">
   <name>stretch_robot_interface</name>
   <version>0.1.0</version>
-  <description>Read-only URDF-derived Stretch manipulation foundation.</description>
-  <maintainer email="maintainer@example.com">Workspace Maintainer</maintainer>
+  <description>Read-only Stretch 3 robot state interface: URDF model, joint decoding, freshness and homed/runstop flags.</description>
+  <maintainer email="jlurquieta1@gmail.com">JLUAS</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>

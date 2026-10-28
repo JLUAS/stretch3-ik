@@ -7,7 +7,7 @@ This meta-package unifies the manipulation stack for the Stretch robot, providin
 The workspace consists of 5 packages:
 
 1. **stretch_custom_manipulation**: The meta bringup package. Contains unified launch files (`sim:=true/false`), configuration for execution limits, unified RViz configuration, and documentation. No C++ code.
-2. **stretch_robot_interface**: A robust, zero-dependency abstract logical representation of the Stretch physical state. Normalizes measurements, filters noise, checks freshness and establishes homing/runstop flags.
+2. **stretch_robot_interface**: A read-only, hardware-execution-free logical representation of the Stretch physical state. Normalizes measurements, filters noise, checks freshness and establishes homing/runstop flags.
 3. **stretch_custom_kinematics**: Provides Inverse Kinematics and an interactive RViz ghost robot (preview) that accepts TCP requests and solves the 5-DoF constraints (`x, y, z` plus target TCP Z-axis direction).
 4. **stretch_guarded_executor**: The core safety state machine. Intercepts the preview target, validates it against per-joint acceleration and velocity bounds, tracks it against execution envelopes, and generates the multi-joint quintic splines for the Stretch driver.
 5. **stretch_lift_rviz_control**: Legacy UI panel specifically for absolute, explicit lift actuation testing.

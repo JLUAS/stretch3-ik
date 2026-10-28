@@ -1,3 +1,4 @@
+"""Launch test: one-click 5-DoF goal, duplicate click, unreachable goal and STOP in the domain-20 kinematic simulation."""
 import os
 import copy
 import math

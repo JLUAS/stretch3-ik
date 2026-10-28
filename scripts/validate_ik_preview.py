@@ -14,7 +14,6 @@ from visualization_msgs.msg import InteractiveMarkerFeedback
 from diagnostic_msgs.msg import DiagnosticArray
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import PoseStamped
-from tf2_msgs.msg import TFMessage
 from tf2_ros import Buffer, TransformListener
 
 

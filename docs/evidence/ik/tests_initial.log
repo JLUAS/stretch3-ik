@@ -1,7 +1,7 @@
 Starting >>> stretch_custom_kinematics
 --- stderr: stretch_custom_kinematics
 Errors while running CTest
-Output from these tests are in: /home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/Testing/Temporary/LastTest.log
+Output from these tests are in: /home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/Testing/Temporary/LastTest.log
 Use "--rerun-failed --output-on-failure" to re-run the failed cases verbosely.
 ---
 Finished <<< stretch_custom_kinematics [0.53s]	[ with test failures ]

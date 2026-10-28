@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>stretch_guarded_executor</name><version>0.1.0</version>
-  <description>Explicitly armed, bounded lift-only Stretch execution with transport-free dry run.</description>
-  <maintainer email="maintainer@example.com">Stretch workspace maintainer</maintainer>
+  <description>Explicitly armed, bounded lift/arm/wrist Stretch execution with transport-free dry run.</description>
+  <maintainer email="jlurquieta1@gmail.com">JLUAS</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>

@@ -3,7 +3,7 @@
   <name>stretch_custom_manipulation</name>
   <version>0.1.0</version>
   <description>Unified bringup for Stretch custom manipulation.</description>
-  <maintainer email="maintainer@example.com">Workspace Maintainer</maintainer>
+  <maintainer email="jlurquieta1@gmail.com">JLUAS</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <exec_depend>stretch_robot_interface</exec_depend>

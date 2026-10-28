@@ -1,13 +1,13 @@
 Starting >>> stretch_robot_interface
-UpdateCTestConfiguration  from :/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/CTestConfiguration.ini
-Parse Config file:/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/CTestConfiguration.ini
-   Site: jose-LOQ-16APH8
+UpdateCTestConfiguration  from :/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/CTestConfiguration.ini
+Parse Config file:/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/CTestConfiguration.ini
+   Site: dev-host
    Build name: (empty)
  Add coverage exclude regular expressions.
 Create new tag: 20260924-0206 - Experimental
-UpdateCTestConfiguration  from :/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/CTestConfiguration.ini
-Parse Config file:/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/CTestConfiguration.ini
-Test project /home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface
+UpdateCTestConfiguration  from :/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/CTestConfiguration.ini
+Parse Config file:/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/CTestConfiguration.ini
+Test project /home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface
 Constructing a list of tests
 Done constructing a list of tests
 Updating test list for fixtures
@@ -17,10 +17,10 @@ Checking test dependency graph end
 test 1
     Start 1: test_stretch_robot_interface
 
-1: Test command: /usr/bin/python3 "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml" "--package-name" "stretch_robot_interface" "--output-file" "/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/ament_cmake_gtest/test_stretch_robot_interface.txt" "--command" "/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_stretch_robot_interface" "--gtest_output=xml:/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml"
+1: Test command: /usr/bin/python3 "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml" "--package-name" "stretch_robot_interface" "--output-file" "/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/ament_cmake_gtest/test_stretch_robot_interface.txt" "--command" "/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_stretch_robot_interface" "--gtest_output=xml:/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml"
 1: Test timeout computed to be: 60
-1: -- run_test.py: invoking following command in '/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface':
-1:  - /home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_stretch_robot_interface --gtest_output=xml:/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml
+1: -- run_test.py: invoking following command in '/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface':
+1:  - /home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_stretch_robot_interface --gtest_output=xml:/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml
 1: Running main() from /opt/ros/humble/src/gtest_vendor/src/gtest_main.cc
 1: [==========] Running 11 tests from 4 test suites.
 1: [----------] Global test environment set-up.
@@ -65,8 +65,8 @@ test 1
 1: [==========] 11 tests from 4 test suites ran. (278 ms total)
 1: [  PASSED  ] 11 tests.
 1: -- run_test.py: return code 0
-1: -- run_test.py: inject classname prefix into gtest result file '/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml'
-1: -- run_test.py: verify result file '/home/jose/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml'
+1: -- run_test.py: inject classname prefix into gtest result file '/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml'
+1: -- run_test.py: verify result file '/home/user/stretch_custom_manipulation_ws/build/stretch_robot_interface/test_results/stretch_robot_interface/test_stretch_robot_interface.gtest.xml'
 1/1 Test #1: test_stretch_robot_interface .....   Passed    0.34 sec
 
 100% tests passed, 0 tests failed out of 1
@@ -77,15 +77,15 @@ gtest    =   0.34 sec*proc (1 test)
 Total Test time (real) =   0.34 sec
 Finished <<< stretch_robot_interface [0.37s]
 Starting >>> stretch_custom_kinematics
-UpdateCTestConfiguration  from :/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/CTestConfiguration.ini
-Parse Config file:/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/CTestConfiguration.ini
-   Site: jose-LOQ-16APH8
+UpdateCTestConfiguration  from :/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/CTestConfiguration.ini
+Parse Config file:/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/CTestConfiguration.ini
+   Site: dev-host
    Build name: (empty)
  Add coverage exclude regular expressions.
 Create new tag: 20260924-0206 - Experimental
-UpdateCTestConfiguration  from :/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/CTestConfiguration.ini
-Parse Config file:/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/CTestConfiguration.ini
-Test project /home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics
+UpdateCTestConfiguration  from :/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/CTestConfiguration.ini
+Parse Config file:/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/CTestConfiguration.ini
+Test project /home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics
 Constructing a list of tests
 Done constructing a list of tests
 Updating test list for fixtures
@@ -95,10 +95,10 @@ Checking test dependency graph end
 test 1
     Start 1: test_ik
 
-1: Test command: /usr/bin/python3 "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml" "--package-name" "stretch_custom_kinematics" "--output-file" "/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/ament_cmake_gtest/test_ik.txt" "--command" "/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_ik" "--gtest_output=xml:/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml"
+1: Test command: /usr/bin/python3 "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml" "--package-name" "stretch_custom_kinematics" "--output-file" "/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/ament_cmake_gtest/test_ik.txt" "--command" "/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_ik" "--gtest_output=xml:/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml"
 1: Test timeout computed to be: 60
-1: -- run_test.py: invoking following command in '/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics':
-1:  - /home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_ik --gtest_output=xml:/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml
+1: -- run_test.py: invoking following command in '/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics':
+1:  - /home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_ik --gtest_output=xml:/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml
 1: Running main() from /opt/ros/humble/src/gtest_vendor/src/gtest_main.cc
 1: [==========] Running 10 tests from 1 test suite.
 1: [----------] Global test environment set-up.
@@ -129,16 +129,16 @@ test 1
 1: [==========] 10 tests from 1 test suite ran. (912 ms total)
 1: [  PASSED  ] 10 tests.
 1: -- run_test.py: return code 0
-1: -- run_test.py: inject classname prefix into gtest result file '/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml'
-1: -- run_test.py: verify result file '/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml'
+1: -- run_test.py: inject classname prefix into gtest result file '/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml'
+1: -- run_test.py: verify result file '/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_ik.gtest.xml'
 1/2 Test #1: test_ik ..........................   Passed    0.97 sec
 test 2
     Start 2: test_stretch_custom_kinematics
 
-2: Test command: /usr/bin/python3 "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml" "--package-name" "stretch_custom_kinematics" "--output-file" "/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/ament_cmake_gtest/test_stretch_custom_kinematics.txt" "--command" "/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_stretch_custom_kinematics" "--gtest_output=xml:/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml"
+2: Test command: /usr/bin/python3 "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml" "--package-name" "stretch_custom_kinematics" "--output-file" "/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/ament_cmake_gtest/test_stretch_custom_kinematics.txt" "--command" "/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_stretch_custom_kinematics" "--gtest_output=xml:/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml"
 2: Test timeout computed to be: 60
-2: -- run_test.py: invoking following command in '/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics':
-2:  - /home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_stretch_custom_kinematics --gtest_output=xml:/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml
+2: -- run_test.py: invoking following command in '/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics':
+2:  - /home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_stretch_custom_kinematics --gtest_output=xml:/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml
 2: Running main() from /opt/ros/humble/src/gtest_vendor/src/gtest_main.cc
 2: [==========] Running 8 tests from 2 test suites.
 2: [----------] Global test environment set-up.
@@ -168,8 +168,8 @@ test 2
 2: [==========] 8 tests from 2 test suites ran. (154 ms total)
 2: [  PASSED  ] 8 tests.
 2: -- run_test.py: return code 0
-2: -- run_test.py: inject classname prefix into gtest result file '/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml'
-2: -- run_test.py: verify result file '/home/jose/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml'
+2: -- run_test.py: inject classname prefix into gtest result file '/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml'
+2: -- run_test.py: verify result file '/home/user/stretch_custom_manipulation_ws/build/stretch_custom_kinematics/test_results/stretch_custom_kinematics/test_stretch_custom_kinematics.gtest.xml'
 2/2 Test #2: test_stretch_custom_kinematics ...   Passed    0.21 sec
 
 100% tests passed, 0 tests failed out of 2

@@ -27,7 +27,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Pimu/Device",
         "message": "OK",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "voltage",
@@ -147,7 +147,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Pimu/Voltage",
         "message": "OK",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "voltage",
@@ -159,7 +159,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Pimu/Current",
         "message": "OK",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "current",
@@ -171,7 +171,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Pimu/Temperature",
         "message": "OK",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "temp",
@@ -183,7 +183,7 @@
         "level": "\u0002",
         "name": "stretch_driver: Pimu/Cliff",
         "message": "cliff_range=47.51861572265625 | out of range [-50,20]",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "cliff_range[0]",
@@ -207,7 +207,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Lift/Device",
         "message": "Hardware present and calibrated",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "timestamp_pc",
@@ -231,7 +231,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Lift/Motor",
         "message": "OK",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "mode",
@@ -355,7 +355,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Arm/Device",
         "message": "Hardware present and calibrated",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "timestamp_pc",
@@ -379,7 +379,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Arm/Motor",
         "message": "OK",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "mode",
@@ -503,7 +503,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Base/Device",
         "message": "Hardware present",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "timestamp_pc",
@@ -555,7 +555,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Base/LeftWheel",
         "message": "OK",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "mode",
@@ -679,7 +679,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Base/RightWheel",
         "message": "OK",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "mode",
@@ -803,7 +803,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Wacc/Device",
         "message": "OK",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "ax",
@@ -815,7 +815,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Head/head_pan",
         "message": "Hardware present and calibrated",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "timestamp_pc",
@@ -907,7 +907,7 @@
         "level": "\u0000",
         "name": "stretch_driver: Head/head_tilt",
         "message": "Hardware present and calibrated",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "timestamp_pc",
@@ -999,7 +999,7 @@
         "level": "\u0000",
         "name": "stretch_driver: EndOfArm/wrist_pitch",
         "message": "Hardware present and calibrated",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "timestamp_pc",
@@ -1091,7 +1091,7 @@
         "level": "\u0000",
         "name": "stretch_driver: EndOfArm/wrist_roll",
         "message": "Hardware present and calibrated",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "timestamp_pc",
@@ -1183,7 +1183,7 @@
         "level": "\u0000",
         "name": "stretch_driver: EndOfArm/wrist_yaw",
         "message": "Hardware present and calibrated",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "timestamp_pc",
@@ -1275,7 +1275,7 @@
         "level": "\u0000",
         "name": "stretch_driver: EndOfArm/stretch_gripper",
         "message": "Hardware present and calibrated",
-        "hardware_id": "stretch-se3-3075",
+        "hardware_id": "stretch-se3-XXXX",
         "values": [
           {
             "key": "timestamp_pc",

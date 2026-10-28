@@ -16,7 +16,7 @@
     base_frame: base_link
     tcp_frame: link_grasp_center
     trajectory_action: /stretch_controller/follow_joint_trajectory
-    trajectory_duration: 1.0
+    trajectory_duration: 3.0
     lift_test_delta: 0.01
     max_delta: [0.027, 0.027, 0.147, 0.147, 0.147]
     max_velocity: [0.02, 0.02, 0.1, 0.1, 0.1]

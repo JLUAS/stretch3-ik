@@ -1,4 +1,4 @@
-import os
+"""Unified bringup: sim:=true (domain 20, local kinematic controller) or sim:=false (real driver, domain 42)."""
 from pathlib import Path
 from importlib.util import find_spec
 

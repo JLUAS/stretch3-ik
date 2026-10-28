@@ -3,7 +3,7 @@
   <name>stretch_lift_rviz_control</name>
   <version>0.1.0</version>
   <description>Vertical-only RViz target selection and guarded Stretch lift execution UI.</description>
-  <maintainer email="maintainer@example.com">Stretch workspace maintainer</maintainer>
+  <maintainer email="jlurquieta1@gmail.com">JLUAS</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>

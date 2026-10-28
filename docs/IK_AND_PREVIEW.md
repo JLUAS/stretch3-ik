@@ -103,7 +103,7 @@ From a fresh terminal:
 
 ```bash
 source /opt/ros/humble/setup.bash
-cd ~/stretch_custom_manipulation_ws
+cd ~/stretch3-ik
 source install/setup.bash
 source scripts/use_sim.sh
 ros2 launch stretch_custom_kinematics ik_preview.launch.py offline:=true
@@ -130,7 +130,7 @@ interface contract. The fixed fixture does not establish external simulator pari
 
 ```bash
 source /opt/ros/humble/setup.bash
-cd ~/stretch_custom_manipulation_ws
+cd ~/stretch3-ik
 source install/setup.bash
 source scripts/use_real.sh
 ros2 launch stretch_custom_kinematics ik_preview.launch.py

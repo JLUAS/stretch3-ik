@@ -7,7 +7,7 @@ runstop released, and the driver parameter
 `fail_if_motor_initial_point_is_not_trajectory_first_point=true`.
 
 ```bash
-cd ~/stretch_custom_manipulation_ws
+cd ~/stretch3-ik
 ./src/stretch_custom_manipulation/scripts/run_manipulation.sh \
   sim:=false dry_run:=false execution_enabled:=true
 ```
@@ -38,8 +38,8 @@ The IK resolves XYZ plus the local Z direction of the TCP, with free rotation ar
 It does not move the base, gripper or head. It does not include collision planning:
 the joint path must be free of obstacles.
 
-The limits of each segment are 1 cm for lift/arm and 0.05 rad for the wrist
-(slightly smaller in simulation), with a duration of five seconds.
+Each segment moves at most 3 cm on lift/arm and 0.15 rad on each wrist axis
+(slightly less in simulation), with a duration of three seconds.
 Segments are automatically repeated until the goal is reached, preserving limits
 of velocity/acceleration and tracking checks on all five axes.
 Loss of valid states, feedback or diagnostics aborts the sequence.

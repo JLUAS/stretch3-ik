@@ -223,7 +223,7 @@ clients present. Driver mode and runstop were not changed.
 
 ```bash
 source /opt/ros/humble/setup.bash
-cd ~/stretch_custom_manipulation_ws
+cd ~/stretch3-ik
 colcon build --packages-up-to stretch_guarded_executor --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 colcon test --packages-select stretch_guarded_executor --event-handlers console_direct+
@@ -257,7 +257,7 @@ Once the executor is running DISARMED with physical execution enabled, one
 explicit operator command performs fresh arm → stage → validate → execute:
 
 ```bash
-~/stretch_custom_manipulation_ws/scripts/execute_guarded_lift_test.sh --execute
+~/stretch3-ik/scripts/execute_guarded_lift_test.sh --execute
 ```
 
 The wrapper sources Humble and this workspace, selects domain 42, and verifies
@@ -272,7 +272,7 @@ To start the executor if it is not already running, use terminal A:
 
 ```bash
 source /opt/ros/humble/setup.bash
-cd ~/stretch_custom_manipulation_ws
+cd ~/stretch3-ik
 source install/setup.bash
 source scripts/use_real.sh
 ros2 launch stretch_guarded_executor real_test.launch.py \
