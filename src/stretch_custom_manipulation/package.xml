@@ -43,8 +43,9 @@
   <exec_depend>sensor_msgs_py</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
-  <!-- Open3D (object_localizer) and SAM 2 (sam2_segmenter) come from pip;
-       see docs/GRASPING.md. -->
+  <exec_depend>stretch_perception_interfaces</exec_depend>
+  <exec_depend>stretch_rgbd_perception</exec_depend>
+  <!-- Open3D and OCR runtime dependencies: scripts/install_perception.sh. -->
   <exec_depend>stretch_small_house_sim</exec_depend>
   <test_depend>launch_testing</test_depend>
   <test_depend>ament_cmake_pytest</test_depend>

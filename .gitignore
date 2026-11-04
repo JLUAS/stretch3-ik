@@ -4,3 +4,5 @@ log/
 __pycache__/
 .pytest_cache/
 *.xwd
+.venv/
+*.pyc

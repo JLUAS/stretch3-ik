@@ -357,6 +357,10 @@ def setup(context):
                     'resolution': LaunchConfiguration('robot_camera_resolution'),
                     'publish_frustum_viz': 'false',
                     'publish_upright_img': 'false',
+                    'depth_module.profile': '848x480x30',
+                    'depth_module.depth_profile': '848x480x30',
+                    'rgb_camera.profile': '848x480x30',
+                    'rgb_camera.color_profile': '848x480x30',
                 }.items()))
 
         if start_nav2:
@@ -444,13 +448,20 @@ def setup(context):
                                 output='screen'))
             actions.append(Node(package='stretch_custom_manipulation',
                                 executable='object_localizer.py', name='object_localizer',
+                                prefix=LaunchConfiguration('perception_python'),
                                 output='screen'))
-            # SAM 2 needs torch >= 2.5 from its own virtualenv.
-            actions.append(Node(package='stretch_custom_manipulation',
-                                executable='sam2_segmenter.py', name='sam2_segmenter',
-                                prefix=LaunchConfiguration('sam2_python'),
-                                parameters=[{'checkpoint': LaunchConfiguration('sam2_checkpoint')}],
-                                output='screen'))
+            # Continuous detection/tracking/OCR; reuse this bringup's camera.
+            actions.append(IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(str(Path(get_package_share_directory(
+                    'stretch_rgbd_perception')) / 'launch' / 'perception.launch.py')),
+                launch_arguments={
+                    'start_camera': 'false',
+                    'viewer': LaunchConfiguration('perception_viewer'),
+                    'pose_source': LaunchConfiguration('perception_pose_source'),
+                    'reference_frame': 'odom',
+                    'python_executable': LaunchConfiguration('perception_python'),
+                    'ocr_enabled': LaunchConfiguration('perception_ocr'),
+                }.items()))
             actions.append(Node(package='stretch_custom_manipulation',
                                 executable='grasp_mission.py', name='grasp_mission',
                                 parameters=[{'dry_run': ParameterValue(dry_run, value_type=bool)}],
@@ -547,10 +558,12 @@ def generate_launch_description():
                               choices=['', 'primitive', 'octomap']),
         DeclareLaunchArgument('grasp_mission', default_value='true',
                               choices=['true', 'false']),
-        DeclareLaunchArgument('sam2_python',
-                              default_value=os.path.expanduser('~/venvs/sam2/bin/python3')),
-        DeclareLaunchArgument('sam2_checkpoint',
-                              default_value=os.path.expanduser('~/venvs/sam2/sam2.1_hiera_tiny.pt')),
+        DeclareLaunchArgument('perception_python',
+                              default_value=os.environ.get('STRETCH_PERCEPTION_PYTHON',
+                                  os.path.expanduser('~/venvs/stretch_perception/bin/python3'))),
+        DeclareLaunchArgument('perception_pose_source', default_value='tf', choices=['tf', 'board', 'none']),
+        DeclareLaunchArgument('perception_ocr', default_value='true', choices=['true', 'false']),
+        DeclareLaunchArgument('perception_viewer', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('pointcloud_topic', default_value='/camera/depth/color/points'),
         DeclareLaunchArgument('camera_scan', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('gazebo_gui', default_value='true', choices=['true', 'false']),

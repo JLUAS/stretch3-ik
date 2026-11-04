@@ -18,7 +18,8 @@
 | `grasp_mission` | `true` | Start the grasp mission and perception (real robot only) |
 | `use_slam`, `map` | `true`, empty | Live SLAM, or a saved map with `use_slam:=false map:=<yaml>` |
 | `start_robot_driver`, `start_robot_camera`, `start_robot_lidar`, `start_nav2` | `true` | Skip a component only if it already runs elsewhere |
-| `sam2_python`, `sam2_checkpoint` | `~/venvs/sam2/...` | SAM 2 virtualenv from `scripts/install_sam2.sh` |
+| `perception_python` | `~/venvs/stretch_perception/bin/python3` | Python environment from `scripts/install_perception.sh` |
+| `perception_pose_source`, `perception_ocr`, `perception_viewer` | `tf`, `true`, `false` | Capture-time pose provider, background OCR and optional rqt viewer |
 
 Configuration: `config/common.yaml`, `config/sim.yaml`, `config/real.yaml`, `config/perception.yaml`.
 
@@ -28,11 +29,11 @@ Configuration: `config/common.yaml`, `config/sim.yaml`, `config/real.yaml`, `con
 |---|---|
 | `grasp_mission.py` | One mission at a time from an `ObjectObservation` to a verified pickup: readiness, grasp selection with IK and FK checks, base correction, pre-grasp, straight approach, close, carry, hold check. Action `~/grasp` (`GraspObject`), services `~/pick`, `~/stop`, `~/release`, `~/look`, `~/clear_fault` |
 | `grasp_planning.py` | Side and top-down grasp candidates with an opening sized to the object and limited by its neighbors (library, no node) |
-| `sam2_segmenter.py` | Click pixel to object mask with SAM 2.1 tiny on CPU; the model is a swappable backend |
+| `rgbd_perception` (`stretch_rgbd_perception`) | Continuous depth segmentation, persistent IDs, OCR, typed visible geometry, and click masks |
 | `object_localizer.py` | Mask plus aligned depth to an object cloud in `odom` (Open3D outlier removal, largest cluster, gripper self-filter) |
 | `gripper_bridge.py` | `GripperCommand` in meters of aperture on top of the driver; refuses while an arm trajectory runs |
 
-Interfaces: `action/GraspObject.action`, `msg/ObjectObservation.msg` (plus `GraspTarget`, `GripperState`, `ManipulationStatus` used by the older state machines).
+Interfaces: `action/GraspObject.action`, `stretch_perception_interfaces/msg/ObjectObservation.msg` (plus `GraspTarget`, `GripperState`, `ManipulationStatus` used by the older state machines).
 
 ## Other scripts
 

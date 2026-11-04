@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.8)
+project(stretch_rgbd_perception)
+find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+ament_python_install_package(rgbd)
+ament_python_install_package(rgbd_perception)
+install(PROGRAMS scripts/perception_node DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
+install(FILES requirements.txt requirements-ocr.txt requirements-live.txt README.md VALIDATION.md DESTINATION share/${PROJECT_NAME})
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(rgbd_core tests WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    APPEND_ENV "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 120)
+  ament_add_pytest_test(ros_adapter test/test_node.py WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    ENV "ROS_DOMAIN_ID=43" "ROS_LOCALHOST_ONLY=1" TIMEOUT 120)
+endif()
+ament_package()

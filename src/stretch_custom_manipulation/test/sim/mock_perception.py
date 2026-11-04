@@ -24,7 +24,7 @@ from std_msgs.msg import Header, String
 from std_srvs.srv import Trigger
 
 try:
-    from stretch_custom_manipulation.msg import ObjectObservation
+    from stretch_perception_interfaces.msg import ObjectObservation
 except ImportError:  # baseline build
     ObjectObservation = None
 

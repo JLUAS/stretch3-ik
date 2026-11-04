@@ -2,7 +2,7 @@
 # image; frame: frame of cloud, centroid and size.
 std_msgs/Header header
 string object_id
-# Segmentation backend that produced the mask (e.g. sam2, fake).
+# Segmentation backend that produced the mask (e.g. rgbd_geometry, fake).
 string source
 # Backend score in [0, 1].
 float32 confidence

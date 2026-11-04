@@ -51,7 +51,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 from visualization_msgs.msg import Marker, MarkerArray
 
 from stretch_custom_manipulation.action import GraspObject
-from stretch_custom_manipulation.msg import ObjectObservation
+from stretch_perception_interfaces.msg import ObjectObservation
 
 import grasp_planning as gp
 

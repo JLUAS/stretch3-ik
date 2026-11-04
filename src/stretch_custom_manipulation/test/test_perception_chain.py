@@ -1,6 +1,6 @@
 """Pixel/mask -> aligned depth -> optical frame -> base_link -> grasp, against
 a ray-cast scene with known geometry; gripper self-filter bias; segmenter
-backend swap."""
+mask selection."""
 import importlib.util
 import math
 import sys
@@ -20,7 +20,6 @@ def load(name):
 
 
 gp = load('grasp_planning')
-seg = load('sam2_segmenter')
 
 # Head D435i color intrinsics measured on the robot (424x240, no distortion).
 FX, FY, CX, CY, W, H = 303.06, 303.07, 212.06, 122.79, 424, 240
@@ -172,28 +171,14 @@ def test_rejects_unfit_orientations_and_openings():
     assert all(c['mode'] != 'side' for c in gp.plan_grasps(low, table))
 
 
-class FakeBackend:
-    """Stands in for SAM 2: replays a recorded mask when the click is on it."""
-    name = 'fake'
-
-    def __init__(self, node):
-        self.mask = None
-
-    def segment(self, rgb, click):
-        if not self.mask[click[1], click[0]]:
-            return None, 0.0
-        return self.mask, 0.99
-
-
-def test_backend_swap_needs_no_downstream_change():
-    assert 'torch' not in sys.modules  # SAM 2 is only imported by its backend
-    backend = seg.load_backend('test_perception_chain:FakeBackend', None)
+def test_clicked_geometry_mask_keeps_the_downstream_grasp_contract():
+    from rgbd_perception.conversions import select_mask
     pose = camera_pose()
     depth, truth = render(pose)
-    backend.mask = truth
-    assert backend.segment(None, (0, 0)) == (None, 0.0)
     v, u = np.argwhere(truth)[len(np.argwhere(truth)) // 2]
-    mask, score = backend.segment(np.zeros((H, W, 3), np.uint8), (u, v))
+    mask, reason = select_mask(np.where(truth, 0, -1), (u, v))
+    assert not reason
+    assert select_mask(np.where(truth, 0, -1), (0, 0))[0] is None
     obj = gp.apply(pose, gp.mask_points(mask, depth, FX, FY, CX, CY))
     best = gp.plan_grasps(obj, np.zeros((0, 3)))[0]
-    assert score > 0.5 and abs(best['grasp'][0, 3] - CAN['c'][0]) < 0.005
+    assert abs(best['grasp'][0, 3] - CAN['c'][0]) < 0.005

@@ -8,7 +8,7 @@ Stretch 3 mobile manipulator. Two ways to use it:
 - **One-click IK in RViz.** Drag a TCP marker, check the ghost robot, click
   **Move to goal**. The executor plans a collision-free path for the lift, arm
   and three wrist axes and runs it under guards.
-- **Click-to-grasp.** Click an object in the head camera image. SAM 2 segments
+- **Click-to-grasp.** Click an object in the head camera image. Depth geometry segments
   it, the depth image turns the mask into a 3D cloud, the planner picks a side
   or top-down grasp, and the mission approaches, closes, verifies and carries
   the object.
@@ -25,6 +25,8 @@ in dry run unless `dry_run:=false` is passed.
 
 | Resource | Description |
 |---|---|
+| [stretch\_rgbd\_perception](src/stretch_rgbd_perception/) | Geometry segmentation, persistent instances, background OCR and camera-relative object geometry |
+| [stretch\_perception\_interfaces](src/stretch_perception_interfaces/) | Shared segmentation and typed object geometry messages |
 | [stretch\_robot\_interface](src/stretch_robot_interface/) | Read-only robot state: URDF model, joint decoding, freshness and homed/runstop flags |
 | [stretch\_custom\_kinematics](src/stretch_custom_kinematics/) | URDF-derived FK, 5-DoF IK (marker and grasp goals), isolated RViz IK preview and status panel |
 | [stretch\_collision\_planning](src/stretch_collision_planning/) | OctoMap and primitive scenes, capsule arm model, RRT-Connect, `octomap_builder` with robot self-filter |
@@ -47,7 +49,7 @@ flowchart LR
   end
 
   subgraph Perception
-    SEG[sam2_segmenter]
+    SEG[rgbd_perception]
     LOC[object_localizer]
     OCT[octomap_builder]
   end
@@ -60,7 +62,7 @@ flowchart LR
   end
 
   OP((Operator click)) --> SEG
-  D435 -- color --> SEG
+  D435 -- RGB-D and calibration --> SEG
   SEG -- mask --> LOC
   D435 -- aligned depth --> LOC
   D435 -- point cloud --> OCT
@@ -77,16 +79,16 @@ flowchart LR
   LIDAR -- scan guard --> MIS
 ```
 
-The same `ik_preview` and `guarded_executor` serve the RViz marker. Without a
-click, the left half of the diagram is idle and the operator drives the
-marker directly.
+The same `ik_preview` and `guarded_executor` serve the RViz marker. Perception
+continuously detects and tracks objects; a click selects a mask for localization
+and the grasp mission. The RViz marker remains independently available.
 
 ### Requirements
 
 - Ubuntu 22.04 with [ROS 2 Humble](https://docs.ros.org/en/humble/Installation.html)
 - `ros-humble-octomap`, `ros-humble-octomap-msgs`, Nav2 (`rosdep` installs them)
 - For the real robot: a Stretch 3 with its ROS 2 driver workspace in `~/ament_ws`, reachable on ROS domain 42
-- For grasping on the robot: Open3D (`pip3 install open3d`) and SAM 2 in its own virtualenv (`scripts/install_sam2.sh`)
+- For perception/grasping: run `scripts/install_perception.sh` (Open3D, OpenCV, SciPy and background RapidOCR; no SAM or Torch)
 - Optional: `pip3 install hello-robot-stretch-urdf` to show robot meshes in RViz (FK and IK do not need them)
 
 ### Installation
@@ -201,7 +203,7 @@ the object after the carry, otherwise `ABORTED` with an error code and the
 failed stage. Any failure after motion started stops the executor and waits
 for the stop to be confirmed. The full runbook, parameters and known limits
 are in [GRASPING.md](src/stretch_custom_manipulation/docs/GRASPING.md); the
-segmentation contract, for swapping SAM 2 for another model, is in
+segmentation contract is in
 [SEGMENTATION\_INTERFACE.md](src/stretch_custom_manipulation/docs/SEGMENTATION_INTERFACE.md).
 
 ### Testing

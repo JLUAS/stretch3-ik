@@ -8,6 +8,7 @@ keeps the largest cluster. Every segmentation gets an answer: a valid
 observation, or an invalid one with the reason.
 """
 import collections
+from copy import deepcopy
 
 import numpy as np
 import open3d as o3d
@@ -21,7 +22,7 @@ from std_msgs.msg import Header
 from tf2_ros import Buffer, TransformException, TransformListener
 from visualization_msgs.msg import Marker
 
-from stretch_custom_manipulation.msg import ObjectObservation
+from stretch_perception_interfaces.msg import ObjectObservation
 
 import grasp_planning as gp
 
@@ -35,8 +36,7 @@ class ObjectLocalizer(Node):
         super().__init__('object_localizer')
         self.frame = self.declare_parameter('target_frame', 'odom').value
         self.max_skew = self.declare_parameter('max_stamp_skew', 0.1).value
-        # SAM 2 takes ~3 s on the NUC: keep ~10 s of depth so the frame that
-        # matches the clicked color image is still here when the mask arrives.
+        # Bounded history for delayed prompt masks; matching is by capture time.
         self.depths = collections.deque(maxlen=150)
         self.info = None
         self.tf = Buffer()
@@ -52,7 +52,7 @@ class ObjectLocalizer(Node):
         self.marker_pub = self.create_publisher(Marker, '/perception/object_marker', 1)
 
     def on_segmentation(self, seg):
-        obs = ObjectObservation(header=seg.header, object_id=seg.object_id, source=seg.source,
+        obs = ObjectObservation(header=deepcopy(seg.header), object_id=seg.object_id, source=seg.source,
                                 confidence=seg.confidence, mask=seg.mask)
         obs.header.frame_id = self.frame
         if not seg.valid:

@@ -1,0 +1,23 @@
+rgbd_perception:
+  ros__parameters:
+    image_topic: /camera/color/image_raw
+    depth_topic: /camera/depth/image_rect_raw
+    color_info_topic: /camera/color/camera_info
+    depth_info_topic: /camera/depth/camera_info
+    rotations: 1
+    pose_source: tf
+    reference_frame: odom
+    max_pair_skew: 0.015
+    max_frame_age: 0.5
+    ocr_enabled: true
+    segmentation.max_depth: 1.1
+    segmentation.plane_min_inliers: 300
+    segmentation.max_object_footprint: 0.20
+    appearance.features: 120
+    persistence.probation_period: 1.0
+    persistence.forget_after: 30.0
+    persistence.match_distance: 0.12
+    persistence.continuity_distance: 0.06
+    persistence.reappearance_penalty: 0.3
+    pose_filter.window: 3
+    ocr.refresh_seconds: 5.0

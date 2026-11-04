@@ -5,7 +5,7 @@ side (or top-down) grasp with an opening sized to the object. Everything runs
 on the robot's NUC.
 
 ```
-D435i color --click--> sam2_segmenter --mask--> object_localizer --odom cloud-->
+D435i RGB-D --click--> rgbd_perception --mask--> object_localizer --odom cloud-->
 grasp_mission --grasp goal--> ik_preview --> guarded_executor (RRT on OctoMap)
                   |--> gripper_bridge (GripperCommand -> driver)
                   `--> driver translate_mobile_base (small base correction, lidar-guarded)
@@ -16,7 +16,7 @@ grasp_mission --grasp goal--> ik_preview --> guarded_executor (RRT on OctoMap)
 | Node | Role |
 |---|---|
 | `octomap_builder` | Persistent OctoMap in `odom`, filled while driving, updated at the shelf. Removes the robot (arm capsules + link boxes) and the target object (`~/target_box`) from the map |
-| `sam2_segmenter.py` | Click -> SAM 2.1 tiny mask on CPU (`/perception/object_mask`, overlay on `/perception/segmentation_overlay`) |
+| `rgbd_perception` | Continuous geometry detection, persistent IDs, OCR and `/perception/objects`; clicks produce `/perception/object_mask` and overlay |
 | `object_localizer.py` | Mask + aligned depth -> object cloud in `odom` (Open3D outliers + largest cluster) |
 | `grasp_mission.py` | Head control, grasp planning (`grasp_planning.py`), base correction, pick sequence |
 | `ik_preview` | Grasp goals on `/ik_preview/grasp_goal`: position + approach + finger axis. Reports `base_dx` when the fixed base cannot reach |
@@ -31,8 +31,10 @@ grasp_mission --grasp goal--> ik_preview --> guarded_executor (RRT on OctoMap)
    `~/ament_ws/scripts`), aborts if the robot copies changed since
    `BASELINE`, and leaves a backup tarball plus the old copies outside the
    workspace.
-2. On the robot: `./scripts/install_sam2.sh` (CPU torch + SAM 2 in
-   `~/venvs/sam2`, downloads the tiny checkpoint, prints the click->mask time).
+2. On the robot: `./scripts/install_perception.sh` (Open3D, OpenCV, SciPy and
+   RapidOCR in `~/venvs/stretch_perception`). No SAM checkpoint is used.
+3. Rebuild all packages: `ObjectObservation` now belongs to
+   `stretch_perception_interfaces`; all publishers/subscribers must use this type.
 
 ## Map of the current surroundings
 
@@ -62,8 +64,12 @@ commands and keep each run's output in `~/grasping_logs/`. They need
 `dry_run:=false` once the dry run looks right. The robot must be homed and
 the runstop released.
 
-In the VNC desktop, open `rqt_image_view` on `/camera/color/image_raw` and
-enable publishing mouse clicks (topic `/camera/color/image_raw_mouse_left`).
+Pass `perception_viewer:=true` to open rqt on `/perception/preview` (upright).
+Set rqt rotation to **0 degrees** and the click topic to
+`/perception/preview_mouse_left`. Alternatively use the native
+`/camera/color/image_raw` and `/camera/color/image_raw_mouse_left`.
+See [the perception package](../../stretch_rgbd_perception/README.md) for geometry
+frames, dimensions, configuration and perception-only testing.
 
 ## Operator workflow
 

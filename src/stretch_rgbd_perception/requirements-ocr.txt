@@ -1,0 +1,2 @@
+-r requirements.txt
+rapidocr_onnxruntime>=1.4,<2
