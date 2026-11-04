@@ -2,6 +2,8 @@
 
 *stretch_guarded_executor* is the only package in this repository that can send trajectories to the Stretch driver. It starts DISARMED, validates every segment against measured state, hardware limits, per-joint step/velocity/acceleration envelopes and driver diagnostics, and fails closed on stale or missing inputs. Base motion is refused.
 
+With `collision_planning.enabled`, `move_to_preview` plans the joint path with RRT-Connect from `stretch_collision_planning` against the configured scene (`collision_environment: primitive` in simulation, `octomap` on the robot), times it as minimum-time quintics within `max_velocity` and `max_acceleration`, and re-checks the rest of the path against every new OctoMap while it executes: a new obstacle on the path stops the arm (`DYNAMIC_OBSTACLE`). It also refuses to start while odometry shows the base moving. The planned TCP path is published on `planned_path` for RViz.
+
 ## guarded_executor
 
 Must run in the `/guarded_executor` namespace. All parameters are read-only after startup.

@@ -9,29 +9,58 @@
 #include <rcl_interfaces/srv/get_parameters.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <sstream>
+#include <std_msgs/msg/color_rgba.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+#include <octomap_msgs/msg/octomap.hpp>
 
+#include <nav_msgs/msg/odometry.hpp>
+
+#include "stretch_collision_planning/octomap_scene_store.hpp"
+#include "stretch_collision_planning/primitive_environment.hpp"
+#include "stretch_collision_planning/robot_collision_model.hpp"
+#include "stretch_collision_planning/rrt_connect.hpp"
+#include "stretch_custom_kinematics/forward_kinematics.hpp"
 #include "stretch_guarded_executor/controller_state.hpp"
 #include "stretch_guarded_executor/diagnostic_policy.hpp"
 #include "stretch_guarded_executor/action/execute_lift_target.hpp"
 #include "stretch_guarded_executor/guard.hpp"
 #include "stretch_guarded_executor/lift_sequence.hpp"
+#include "stretch_guarded_executor/planned_trajectory.hpp"
 #include "stretch_robot_interface/interface_node.hpp"
 using namespace stretch_guarded_executor;
+namespace collision = stretch_collision_planning;
 using Trigger = std_srvs::srv::Trigger;
 using SetBool = std_srvs::srv::SetBool;
 using TrajectoryAction = control_msgs::action::FollowJointTrajectory;
 using TrajectoryHandle = rclcpp_action::ClientGoalHandle<TrajectoryAction>;
 using LiftAction = stretch_guarded_executor::action::ExecuteLiftTarget;
 using LiftHandle = rclcpp_action::ServerGoalHandle<LiftAction>;
+
+struct PlanningTransaction {
+  uint64_t request_id = 0;
+  Vector q_start = Vector::Zero();
+  Vector q_goal = Vector::Zero();
+  geometry_msgs::msg::Point desired_tcp;
+  std::string target_frame;
+  double target_z = std::numeric_limits<double>::quiet_NaN();
+  double transformed_z = std::numeric_limits<double>::quiet_NaN();
+  collision::CollisionEnvironmentBackend backend =
+      collision::CollisionEnvironmentBackend::Primitive;
+  uint64_t scene_id = 0;
+  collision::OctoMapEnvironment::TimePoint scene_received_at{};
+  collision::PlannerOptions options;
+};
+
 class Executor : public stretch_robot_interface::InterfaceNode {
  public:
   Executor() : InterfaceNode("executor") {
     if (std::string(get_namespace()) != "/guarded_executor")
       throw std::invalid_argument("Required namespace: /guarded_executor");
     dry_ = immutable<bool>("dry_run", true);
-    sim_bypass_hardware_checks_ = immutable<bool>("sim_bypass_hardware_checks", false);
+    sim_bypass_hardware_checks_ =
+        immutable<bool>("sim_bypass_hardware_checks", false);
     transport_test_mode_ = immutable<bool>("transport_test_mode", false);
     config_.execution_enabled = immutable<bool>("execution_enabled", false);
     config_.lift_only = immutable<bool>("lift_only", true);
@@ -93,6 +122,52 @@ class Executor : public stretch_robot_interface::InterfaceNode {
           "Transport test mode requires wall time and canonical state");
     duration_ = immutable<double>("trajectory_duration", 5.0);
     lift_delta_ = immutable<double>("lift_test_delta", .01);
+    config_.max_duration = immutable<double>("max_duration", config_.max_duration);
+    config_.min_duration = immutable<double>("min_duration", config_.min_duration);
+    self_ignore_margin_ =
+        immutable<double>("collision_planning.self_ignore_margin", 0.08);
+    // A full 1.1 m lift at 0.1 m/s takes about 21 s.
+    if (!sim_bypass_hardware_checks_ && config_.max_duration > 30.0)
+      throw std::invalid_argument(
+          "max_duration above 30 s is restricted to isolated simulation");
+    collision_planning_enabled_ =
+        immutable<bool>("collision_planning.enabled", false);
+    collision_backend_ = collision::parseCollisionEnvironmentBackend(
+        immutable<std::string>("collision_environment", "primitive"));
+    octomap_topic_ = immutable<std::string>(
+        "collision_planning.octomap_topic", "/perception/octomap_binary");
+    collision::OctoMapEnvironmentOptions octomap_options;
+    octomap_options.freshness_timeout = immutable<double>(
+        "collision_planning.scene_freshness_timeout", 1.0);
+    octomap_options.default_map_frame =
+        immutable<std::string>("collision_planning.map_frame", "base_link");
+    octomap_options.unknown_policy =
+        immutable<bool>("collision_planning.unknown_is_collision", true)
+            ? collision::UnknownSpacePolicy::UnknownIsCollision
+            : collision::UnknownSpacePolicy::UnknownIsFree;
+    octomap_scene_store_ = std::make_unique<collision::OctoMapSceneStore>(
+        octomap_options, octomap_options.default_map_frame);
+    collision_options_.planning_timeout =
+        immutable<double>("collision_planning.timeout", 2.0);
+    collision_options_.max_iterations =
+        immutable<int>("collision_planning.max_iterations", 2000);
+    collision_options_.max_extension_distance =
+        immutable<double>("collision_planning.step_size", 0.12);
+    collision_options_.edge_resolution =
+        immutable<double>("collision_planning.edge_resolution", 0.01);
+    collision_options_.goal_bias =
+        immutable<double>("collision_planning.goal_bias", 0.05);
+    const int collision_seed =
+        immutable<int>("collision_planning.random_seed", 7);
+    if (collision_seed < 0)
+      throw std::invalid_argument("collision_planning.random_seed must be >= 0");
+    collision_options_.random_seed = static_cast<unsigned>(collision_seed);
+    collision_options_.simplify =
+        immutable<bool>("collision_planning.shortcut_enabled", true);
+    collision_options_.shortcut_attempts =
+        immutable<int>("collision_planning.shortcut_attempts", 120);
+    collision_marker_enabled_ =
+        immutable<bool>("collision_planning.visualize_path", true);
     for (auto entry :
          {std::pair<const char*, Vector*>{"max_delta", &config_.max_delta},
           {"tracking_error", &config_.tracking_error},
@@ -124,9 +199,13 @@ class Executor : public stretch_robot_interface::InterfaceNode {
         "dry_run_report_path", "/tmp/stretch_guarded_executor_report.json");
     action_name_ = immutable<std::string>(
         "trajectory_action", "/stretch_controller/follow_joint_trajectory");
-    if (action_name_ != "/stretch_controller/follow_joint_trajectory")
+    const bool supported_sim_action =
+        sim_bypass_hardware_checks_ &&
+        action_name_ == "/stretch_arm_controller/follow_joint_trajectory";
+    if (action_name_ != "/stretch_controller/follow_joint_trajectory" &&
+        !supported_sim_action)
       throw std::invalid_argument(
-          "Only the inspected Stretch action is supported");
+          "Unsupported Stretch trajectory action");
     if (!dry_ && !sim_bypass_hardware_checks_) {
       for (auto name :
            {"/stretch_controller/follow_joint_trajectory",
@@ -148,6 +227,52 @@ class Executor : public stretch_robot_interface::InterfaceNode {
     lift_status_ = create_publisher<std_msgs::msg::String>(
         "lift_execution_status",
         rclcpp::QoS(1).reliable().transient_local());
+    planned_path_markers_ =
+        create_publisher<visualization_msgs::msg::MarkerArray>(
+            "planned_path", rclcpp::QoS(1).reliable().transient_local());
+    octomap_sub_ = create_subscription<octomap_msgs::msg::Octomap>(
+        octomap_topic_, rclcpp::QoS(1).reliable().transient_local(),
+        [this](octomap_msgs::msg::Octomap::ConstSharedPtr message) {
+          if (!octomap_scene_store_) return;
+          // A map kept in odom is queried through the latest odometry pose.
+          Eigen::Isometry3d map_from_base = Eigen::Isometry3d::Identity();
+          if (message->header.frame_id != "base_link") {
+            if (steady() - odom_time_ > .5 ||
+                odom_frame_ != message->header.frame_id) {
+              RCLCPP_ERROR_THROTTLE(
+                  get_logger(), *get_clock(), 2000,
+                  "Rejected OctoMap in %s: no fresh odometry in that frame",
+                  message->header.frame_id.c_str());
+              return;
+            }
+            map_from_base = odom_base_;
+          }
+          if (!octomap_scene_store_->update(
+                  *message, collision::OctoMapEnvironment::Clock::now(),
+                  map_from_base)) {
+            RCLCPP_ERROR_THROTTLE(
+                get_logger(), *get_clock(), 2000, "Rejected OctoMap: %s",
+                octomap_scene_store_->lastError().c_str());
+            return;
+          }
+          monitorDynamicObstacles();
+        });
+    odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+        immutable<std::string>("odom_topic", "/odom"), rclcpp::SensorDataQoS(),
+        [this](nav_msgs::msg::Odometry::ConstSharedPtr m) {
+          const auto& p = m->pose.pose.position;
+          const auto& o = m->pose.pose.orientation;
+          const auto& v = m->twist.twist;
+          Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
+          if (!std::isfinite(p.x + p.y + p.z) || q.norm() < 1e-6) return;
+          odom_base_ = Eigen::Isometry3d::Identity();
+          odom_base_.linear() = q.normalized().toRotationMatrix();
+          odom_base_.translation() = Eigen::Vector3d(p.x, p.y, p.z);
+          odom_frame_ = m->header.frame_id;
+          odom_still_ = std::hypot(v.linear.x, v.linear.y) < .005 &&
+                        std::abs(v.angular.z) < .01;
+          odom_time_ = steady();
+        });
     if (std::string(status_->get_topic_name()).rfind("/guarded_executor/", 0) !=
         0)
       throw std::invalid_argument("Status must remain namespaced");
@@ -230,6 +355,23 @@ class Executor : public stretch_robot_interface::InterfaceNode {
                   preview_ok_ = false;
               std::string extra;
               if (q >> extra || seed >> extra) preview_ok_ = false;
+              try {
+                if (!values.count("target_frame") ||
+                    !values.count("target_z") ||
+                    !values.count("transformed_z")) {
+                  preview_ok_ = false;
+                } else {
+                  preview_target_frame_ = values.at("target_frame");
+                  preview_target_z_ = std::stod(values.at("target_z"));
+                  preview_transformed_z_ =
+                      std::stod(values.at("transformed_z"));
+                  if (!std::isfinite(preview_target_z_) ||
+                      !std::isfinite(preview_transformed_z_))
+                    preview_ok_ = false;
+                }
+              } catch (const std::exception&) {
+                preview_ok_ = false;
+              }
               updateCandidate();
             });
     // Read-only parameter client is allowed in dry run. No action or stop
@@ -327,7 +469,8 @@ class Executor : public stretch_robot_interface::InterfaceNode {
           }
           refreshCandidate();
           auto in = input();
-          auto check = guard_->validate(in, candidate_, duration_, steady());
+          auto check = guard_->validate(
+              in, candidate_, segmentDuration(candidate_.q - in.q), steady());
           if (dry_) writeDryReport(in, check);
           r->success = check.ok;
           r->message = check.reason +
@@ -340,6 +483,10 @@ class Executor : public stretch_robot_interface::InterfaceNode {
           if (!guard_ || pending_ || stop_unconfirmed_ || lift_goal_ || sequence_active_ ||
               guard_->state() == State::EXECUTING) {
             r->message = "executor unavailable or motion already active";
+            return;
+          }
+          if (collision_planning_enabled_) {
+            moveToPreviewWithPlanning(*r);
             return;
           }
           manual_ = false;
@@ -515,7 +662,15 @@ class Executor : public stretch_robot_interface::InterfaceNode {
     in.diagnostics_fresh = t - diag_time_ < 2.5;
     in.diagnostics_ok = diag_ok_;
     in.startpoint_guard_verified = start_guard_ && t - param_time_ < 5;
+    // Without odometry (kinematic fixtures) the base cannot move.
+    in.base_still = odom_time_ < 0 || (t - odom_time_ < .5 && odom_still_);
     if (get_parameter("sim_bypass_hardware_checks").as_bool()) {
+      // The simulated controller owns trajectory timing and state watchdogs.
+      // Require a decoded state, but ignore brief /clock publication skew.
+      in.fresh = q.has_value();
+      in.required_joints = q.has_value();
+      in.homed = true;
+      in.runstopped = false;
       in.mode_fresh = true;
       in.trajectory_mode = true;
       in.streaming_known = true;
@@ -603,6 +758,7 @@ class Executor : public stretch_robot_interface::InterfaceNode {
       active_bounds_ = hardware_.intersectModel(*model_);
       bounds_ready_ = true;
       guard_ = std::make_unique<Guard>(config_, active_bounds_);
+      configureCollisionPlanning();
       candidate_.valid = false;
       manual_ = false;
     }
@@ -613,7 +769,10 @@ class Executor : public stretch_robot_interface::InterfaceNode {
     if (guard_->state() == State::EXECUTING) {
       const double now = steady();
       const auto measured = input();
-      auto c = tracking_synchronized_
+      // Gazebo controllers advance trajectories in simulation time. The
+      // controller still enforces path tolerances; wall-time tracking here is
+      // retained for the physical robot only.
+      auto c = tracking_synchronized_ && !sim_bypass_hardware_checks_
                    ? guard_->monitor(measured, now)
                    : guard_->monitorPrerequisites(measured);
       if (!c.ok) {
@@ -668,15 +827,39 @@ class Executor : public stretch_robot_interface::InterfaceNode {
       }
     }
     if (steady() - last_publish_ > .2) publish();
-    if (preparing_mode_ && sequence_active_) {
+    if (preparing_mode_ && replan_after_mode_) {
+      const auto measured = input();
+      if (measured.mode_fresh && measured.trajectory_mode) {
+        if (mode_ready_since_ < 0) mode_ready_since_ = steady();
+        if (steady() - mode_ready_since_ > .5) {  // let the arm settle
+          preparing_mode_ = replan_after_mode_ = false;
+          sequence_active_ = sequence_planned_ = false;
+          Trigger::Response response;
+          moveToPreviewWithPlanning(response);
+          if (!response.success)
+            RCLCPP_ERROR(get_logger(), "Planning after mode switch failed: %s",
+                         response.message.c_str());
+        }
+      } else if (steady() - mode_request_sent_ > 3.) {
+        preparing_mode_ = replan_after_mode_ = sequence_active_ = false;
+        sequence_planned_ = false;
+        guard_->abort("timeout waiting for trajectory mode");
+        publish();
+      }
+    } else if (preparing_mode_ && sequence_active_) {
       const auto measured = input();
       if (measured.mode_fresh && measured.trajectory_mode) {
         preparing_mode_ = false;
         Trigger::Response response;
-        startNextSegment(response);
+        if (sequence_planned_)
+          executePreparedPlannedTrajectory(response);
+        else
+          startNextSegment(response);
       } else if (steady() - mode_request_sent_ > 3.) {
         preparing_mode_ = false;
         sequence_active_ = false;
+        sequence_planned_ = false;
+        prepared_trajectory_ = {};
         manual_ = false;
         guard_->abort("timeout waiting for trajectory mode");
         publish();
@@ -684,13 +867,846 @@ class Executor : public stretch_robot_interface::InterfaceNode {
     }
     if (sequence_active_ && guard_->state() == State::ABORTED) {
       sequence_active_ = false;
+      sequence_planned_ = false;
+      prepared_trajectory_ = {};
       manual_ = false;
     }
     if (sequence_active_ && !pending_ && !stop_unconfirmed_ &&
         guard_->state() == State::COMPLETE) {
-      Trigger::Response response;
-      startNextSegment(response);
+      if (sequence_planned_) {
+        sequence_active_ = false;
+        sequence_planned_ = false;
+        prepared_trajectory_ = {};
+        manual_ = false;
+        publish();
+      } else {
+        Trigger::Response response;
+        startNextSegment(response);
+      }
     }
+  }
+
+  void configureCollisionPlanning() {
+    collision_planner_.reset();
+    collision_checker_.reset();
+    robot_collision_model_.reset();
+    if (!collision_planning_enabled_) {
+      planning_status_ = "collision_planning=disabled";
+      clearPlannedMarkers();
+      return;
+    }
+    try {
+      robot_collision_model_ =
+          std::make_shared<collision::PrimitiveRobotCollisionModel>(
+          collision::PrimitiveRobotCollisionModel::makeConservativeStretchArm());
+      if (collision_backend_ ==
+          collision::CollisionEnvironmentBackend::Primitive) {
+        auto scene = std::make_shared<collision::PrimitiveEnvironment>(
+            collision::PrimitiveEnvironment::makeDeskBenchmark());
+        collision_checker_ =
+            std::make_unique<collision::StateValidityChecker>(
+                model_, active_bounds_, robot_collision_model_, scene);
+        collision_planner_ =
+            std::make_unique<collision::RrtConnectPlanner>(*collision_checker_);
+        planning_status_ =
+            "collision_planning=ready environment=PRIMITIVE "
+            "scene=deterministic_primitive_desk";
+      } else {
+        planning_status_ =
+            "collision_planning=waiting environment=OCTOMAP "
+            "scene=SCENE_UNAVAILABLE";
+      }
+    } catch (const std::exception& e) {
+      planning_status_ = std::string("SCENE_UNAVAILABLE: ") + e.what();
+      collision_planner_.reset();
+      collision_checker_.reset();
+      clearPlannedMarkers();
+    }
+  }
+
+  // Minimum-time quintic for one direct segment, never shorter than the
+  // configured nominal duration. The 1% margin keeps the guard's exact peak
+  // checks from failing on rounding.
+  double segmentDuration(const Vector& delta) const {
+    double t = duration_;
+    for (int i = 0; i < 5; ++i) {
+      if (!std::isfinite(delta[i])) return duration_;
+      const double d = std::abs(delta[i]);
+      t = std::max({t, 1.01 * 1.875 * d / config_.max_velocity[i],
+                    1.01 * std::sqrt((10 / std::sqrt(3.)) * d /
+                                     config_.max_acceleration[i])});
+    }
+    return t;
+  }
+  TimedTrajectoryOptions timingOptions() const {
+    TimedTrajectoryOptions options;
+    options.bounds = active_bounds_;
+    options.max_delta = config_.max_delta;
+    options.max_velocity = config_.max_velocity;
+    options.max_acceleration = config_.max_acceleration;
+    options.min_duration = config_.min_duration;
+    options.max_duration = config_.max_duration;
+    options.nominal_duration = duration_;
+    return options;
+  }
+
+  Check validateTimedTrajectoryCollision(
+      const TimedTrajectory& trajectory,
+      const collision::StateValidityChecker* checker = nullptr) const {
+    if (!checker) checker = collision_checker_.get();
+    if (!checker)
+      return {false, "SCENE_UNAVAILABLE: collision checker unavailable"};
+    if (trajectory.states.empty() ||
+        trajectory.states.size() != trajectory.times_from_start.size())
+      return {false, "TRAJECTORY_COLLISION: invalid timed trajectory"};
+    for (size_t i = 0; i < trajectory.states.size(); ++i) {
+      const auto state = checker->isStateValid(trajectory.states[i]);
+      if (!state.valid) {
+        return {false, "TRAJECTORY_COLLISION: point " + std::to_string(i) +
+                           " invalid: " + state.reason};
+      }
+    }
+    for (size_t i = 1; i < trajectory.states.size(); ++i) {
+      const auto edge = checker->isEdgeValid(
+          trajectory.states[i - 1], trajectory.states[i],
+          collision_options_.edge_resolution);
+      if (!edge.valid) {
+        return {false, "TRAJECTORY_COLLISION: edge " +
+                           std::to_string(i - 1) + "->" +
+                           std::to_string(i) +
+                           " invalid: " + edge.first_invalid.reason};
+      }
+    }
+    return {true, "trajectory collision validation passed"};
+  }
+
+  // Copy of a map scene where voxels touching the arm where it is now are
+  // ignored: they are the arm itself (camera latency, gripper bulkier than
+  // its capsule), never an obstacle it could avoid.
+  std::shared_ptr<collision::OctoMapEnvironment> withoutSelf(
+      const std::shared_ptr<const collision::OctoMapEnvironment>& scene) const {
+    auto environment = std::make_shared<collision::OctoMapEnvironment>(*scene);
+    const auto measured = input();
+    if (!measured.q.allFinite() || !robot_collision_model_) return environment;
+    collision::StateValidityChecker current(
+        model_, active_bounds_, robot_collision_model_, environment);
+    auto body =
+        robot_collision_model_->capsules(current.linkTransforms(measured.q));
+    for (auto& c : body) c.radius += self_ignore_margin_;
+    environment->setIgnoredCapsules(body);
+    return environment;
+  }
+
+  // Re-checks the rest of an executing planned trajectory against every new
+  // map, so an obstacle that appears on the path stops the arm.
+  void monitorDynamicObstacles() {
+    if (!guard_ || guard_->state() != State::EXECUTING || !guard_->plan() ||
+        guard_->plan()->trajectory.empty() || guard_->plan()->started_at <= 0)
+      return;
+    const auto latest = octomap_scene_store_->snapshot();
+    if (!latest.available()) return;
+    const auto& plan = *guard_->plan();
+    const double elapsed = steady() - plan.started_at;
+    TimedTrajectory rest;
+    for (size_t i = 0; i < plan.trajectory.size(); ++i)
+      if (plan.times_from_start[i] >= elapsed - .2) {
+        rest.states.push_back(plan.trajectory[i]);
+        rest.times_from_start.push_back(plan.times_from_start[i]);
+      }
+    if (rest.states.empty()) return;
+    Check check{true, ""};
+    try {
+      collision::StateValidityChecker checker(
+          model_, active_bounds_, robot_collision_model_,
+          withoutSelf(latest.environment));
+      check = validateTimedTrajectoryCollision(rest, &checker);
+    } catch (const std::exception& e) {
+      // The motion keeps going on its pre-validated path; say the watch is blind.
+      RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 2000,
+                            "Dynamic obstacle check skipped: %s", e.what());
+      return;
+    }
+    if (check.ok) return;
+    const std::string reason = "DYNAMIC_OBSTACLE: " + check.reason;
+    RCLCPP_ERROR(get_logger(), "%s", reason.c_str());
+    stopAndDisarm(true);
+    guard_->abort(reason);
+    publish();
+  }
+
+  stretch_robot_interface::RobotState stateFromVector(const Vector& q) const {
+    stretch_robot_interface::RobotState state;
+    state.valid = true;
+    state.lift = q[0];
+    state.arm_extension = q[1];
+    state.wrist_yaw = q[2];
+    state.wrist_pitch = q[3];
+    state.wrist_roll = q[4];
+    return state;
+  }
+
+  geometry_msgs::msg::Point tcpPoint(const Vector& q) const {
+    const auto pose =
+        stretch_custom_kinematics::ForwardKinematics(model_).computeTcpPose(
+            stateFromVector(q));
+    geometry_msgs::msg::Point point;
+    point.x = pose.position.x;
+    point.y = pose.position.y;
+    point.z = pose.position.z;
+    return point;
+  }
+
+  visualization_msgs::msg::Marker lineMarker(
+      int id, const std::string& ns, const std::vector<Vector>& path,
+      float r, float g, float b, float a, double width) const {
+    visualization_msgs::msg::Marker marker;
+    marker.header.frame_id = model_ ? model_->base() : "base_link";
+    marker.header.stamp = now();
+    marker.ns = ns;
+    marker.id = id;
+    marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+    marker.action = visualization_msgs::msg::Marker::ADD;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = width;
+    marker.color.r = r;
+    marker.color.g = g;
+    marker.color.b = b;
+    marker.color.a = a;
+    if (model_) {
+      for (const auto& q : path) marker.points.push_back(tcpPoint(q));
+    }
+    return marker;
+  }
+
+  geometry_msgs::msg::Point markerPoint(const Eigen::Vector3d& value) const {
+    geometry_msgs::msg::Point point;
+    point.x = value.x();
+    point.y = value.y();
+    point.z = value.z();
+    return point;
+  }
+
+  visualization_msgs::msg::Marker diagnosticMarker(
+      int id, const std::string& ns, int type) const {
+    visualization_msgs::msg::Marker marker;
+    marker.header.frame_id = model_ ? model_->base() : "base_link";
+    marker.header.stamp = now();
+    marker.ns = ns;
+    marker.id = id;
+    marker.type = type;
+    marker.action = visualization_msgs::msg::Marker::ADD;
+    marker.pose.orientation.w = 1.0;
+    return marker;
+  }
+
+  void publishCollisionDiagnostics(
+      const Vector& start, const Vector& goal,
+      const collision::StateValidityResult& validity,
+      const std::string& context) {
+    if (!collision_marker_enabled_ || !planned_path_markers_ ||
+        !collision_checker_)
+      return;
+
+    visualization_msgs::msg::MarkerArray markers;
+    visualization_msgs::msg::Marker clear;
+    clear.action = visualization_msgs::msg::Marker::DELETEALL;
+    markers.markers.push_back(clear);
+
+    const auto add_workspace_point = [&](int id, const std::string& ns,
+                                         const Vector& q, float r, float g,
+                                         float b) {
+      auto marker = diagnosticMarker(
+          id, ns, visualization_msgs::msg::Marker::SPHERE);
+      marker.pose.position = tcpPoint(q);
+      marker.scale.x = marker.scale.y = marker.scale.z = 0.035;
+      marker.color.r = r;
+      marker.color.g = g;
+      marker.color.b = b;
+      marker.color.a = 0.95f;
+      markers.markers.push_back(std::move(marker));
+    };
+    add_workspace_point(30, "workspace_start", start, 0.1f, 0.9f, 0.2f);
+    add_workspace_point(31, "workspace_goal", goal, 1.0f, 0.55f, 0.05f);
+
+    if (validity.contact) {
+      const auto& contact = *validity.contact;
+      const bool unknown =
+          contact.kind == collision::CollisionContactKind::Unknown;
+      if (contact.robot_capsule) {
+        const auto& capsule = *contact.robot_capsule;
+        auto line = diagnosticMarker(
+            10, "rejected_collision_capsule",
+            visualization_msgs::msg::Marker::LINE_LIST);
+        line.points = {markerPoint(capsule.a), markerPoint(capsule.b)};
+        line.scale.x = 2.0 * capsule.radius;
+        line.color.r = unknown ? 0.7f : 1.0f;
+        line.color.g = unknown ? 0.7f : 0.05f;
+        line.color.b = unknown ? 0.7f : 0.05f;
+        line.color.a = 0.9f;
+        markers.markers.push_back(std::move(line));
+
+        auto ends = diagnosticMarker(
+            11, "rejected_collision_capsule_ends",
+            visualization_msgs::msg::Marker::SPHERE_LIST);
+        ends.points = {markerPoint(capsule.a), markerPoint(capsule.b)};
+        ends.scale.x = ends.scale.y = ends.scale.z = 2.0 * capsule.radius;
+        ends.color.r = unknown ? 0.7f : 1.0f;
+        ends.color.g = unknown ? 0.7f : 0.05f;
+        ends.color.b = unknown ? 0.7f : 0.05f;
+        ends.color.a = 0.9f;
+        markers.markers.push_back(std::move(ends));
+      }
+      if (contact.environment_box) {
+        const auto& box = *contact.environment_box;
+        auto voxel = diagnosticMarker(
+            12, unknown ? "collision_voxel_unknown"
+                        : "collision_voxel_occupied",
+            visualization_msgs::msg::Marker::CUBE);
+        voxel.pose.position = markerPoint(box.center);
+        voxel.scale.x = box.size.x();
+        voxel.scale.y = box.size.y();
+        voxel.scale.z = box.size.z();
+        voxel.color.r = unknown ? 0.55f : 1.0f;
+        voxel.color.g = unknown ? 0.55f : 0.0f;
+        voxel.color.b = unknown ? 0.55f : 0.0f;
+        voxel.color.a = 0.95f;
+        markers.markers.push_back(std::move(voxel));
+
+        auto label = diagnosticMarker(
+            13, "collision_contact_label",
+            visualization_msgs::msg::Marker::TEXT_VIEW_FACING);
+        label.pose.position = markerPoint(
+            box.center + Eigen::Vector3d(0.0, 0.0, 0.06));
+        label.scale.z = 0.035;
+        label.color.r = label.color.g = label.color.b = 1.0f;
+        label.color.a = 1.0f;
+        label.text = context + ": " +
+                     (unknown ? "UNKNOWN" : "OCCUPIED") + "\n" +
+                     contact.robot_geometry;
+        markers.markers.push_back(std::move(label));
+      }
+    }
+
+    // A 2-D diagnostic slice: lift (vertical) x arm extension (horizontal),
+    // with wrist joints fixed at the rejected goal values.
+    constexpr int samples = 25;
+    constexpr double width = 0.40;
+    constexpr double height = 0.55;
+    const Eigen::Vector3d origin(0.42, 0.38, 0.20);
+    const auto& bounds = collision_checker_->bounds();
+    auto grid = diagnosticMarker(
+        20, "cspace_slice", visualization_msgs::msg::Marker::CUBE_LIST);
+    grid.scale.x = width / samples;
+    grid.scale.y = 0.008;
+    grid.scale.z = height / samples;
+    grid.points.reserve(samples * samples);
+    grid.colors.reserve(samples * samples);
+    for (int lift_index = 0; lift_index < samples; ++lift_index) {
+      for (int arm_index = 0; arm_index < samples; ++arm_index) {
+        const double lift_u = static_cast<double>(lift_index) / (samples - 1);
+        const double arm_u = static_cast<double>(arm_index) / (samples - 1);
+        Vector q = goal;
+        q[0] = bounds.lower[0] + lift_u * (bounds.upper[0] - bounds.lower[0]);
+        q[1] = bounds.lower[1] + arm_u * (bounds.upper[1] - bounds.lower[1]);
+        const auto sample = collision_checker_->isStateValid(q);
+        geometry_msgs::msg::Point point;
+        point.x = origin.x() + arm_u * width;
+        point.y = origin.y();
+        point.z = origin.z() + lift_u * height;
+        grid.points.push_back(point);
+        std_msgs::msg::ColorRGBA color;
+        color.a = 0.65f;
+        if (sample.valid) {
+          color.r = 0.1f;
+          color.g = 0.8f;
+          color.b = 0.2f;
+          color.a = 0.35f;
+        } else if (sample.contact &&
+                   sample.contact->kind ==
+                       collision::CollisionContactKind::Unknown) {
+          color.r = color.g = color.b = 0.5f;
+        } else if (sample.contact &&
+                   sample.contact->kind ==
+                       collision::CollisionContactKind::Occupied) {
+          color.r = 0.95f;
+          color.g = 0.05f;
+          color.b = 0.05f;
+        } else {
+          color.r = 1.0f;
+          color.g = 0.55f;
+          color.b = 0.0f;
+        }
+        grid.colors.push_back(color);
+      }
+    }
+    markers.markers.push_back(std::move(grid));
+
+    const auto cspace_point = [&](const Vector& q) {
+      geometry_msgs::msg::Point point;
+      const double arm_u = std::clamp(
+          (q[1] - bounds.lower[1]) / (bounds.upper[1] - bounds.lower[1]),
+          0.0, 1.0);
+      const double lift_u = std::clamp(
+          (q[0] - bounds.lower[0]) / (bounds.upper[0] - bounds.lower[0]),
+          0.0, 1.0);
+      point.x = origin.x() + arm_u * width;
+      point.y = origin.y() - 0.012;
+      point.z = origin.z() + lift_u * height;
+      return point;
+    };
+    auto projected_edge = diagnosticMarker(
+        21, "cspace_projected_edge",
+        visualization_msgs::msg::Marker::LINE_STRIP);
+    projected_edge.points = {cspace_point(start), cspace_point(goal)};
+    projected_edge.scale.x = 0.008;
+    projected_edge.color.r = 1.0f;
+    projected_edge.color.g = 0.85f;
+    projected_edge.color.b = 0.0f;
+    projected_edge.color.a = 1.0f;
+    markers.markers.push_back(std::move(projected_edge));
+
+    const auto add_cspace_point = [&](int id, const std::string& ns,
+                                      const Vector& q, float r, float g,
+                                      float b) {
+      auto marker = diagnosticMarker(
+          id, ns, visualization_msgs::msg::Marker::SPHERE);
+      marker.pose.position = cspace_point(q);
+      marker.scale.x = marker.scale.y = marker.scale.z = 0.025;
+      marker.color.r = r;
+      marker.color.g = g;
+      marker.color.b = b;
+      marker.color.a = 1.0f;
+      markers.markers.push_back(std::move(marker));
+    };
+    add_cspace_point(22, "cspace_start", start, 0.1f, 1.0f, 0.2f);
+    add_cspace_point(23, "cspace_goal", goal, 1.0f, 0.55f, 0.0f);
+
+    auto cspace_label = diagnosticMarker(
+        24, "cspace_label",
+        visualization_msgs::msg::Marker::TEXT_VIEW_FACING);
+    cspace_label.pose.position = markerPoint(
+        origin + Eigen::Vector3d(width * 0.5, 0.0, height + 0.04));
+    cspace_label.scale.z = 0.035;
+    cspace_label.color.r = cspace_label.color.g = cspace_label.color.b = 1.0f;
+    cspace_label.color.a = 1.0f;
+    cspace_label.text =
+        "C-space: lift x arm\ngreen=free red=occupied gray=unknown";
+    markers.markers.push_back(std::move(cspace_label));
+
+    planned_path_markers_->publish(markers);
+  }
+
+  void clearPlannedMarkers() {
+    if (!planned_path_markers_) return;
+    visualization_msgs::msg::MarkerArray markers;
+    visualization_msgs::msg::Marker marker;
+    marker.action = visualization_msgs::msg::Marker::DELETEALL;
+    markers.markers.push_back(marker);
+    planned_path_markers_->publish(markers);
+  }
+
+  void publishPlannedMarkers(const std::vector<Vector>& raw,
+                             const std::vector<Vector>& simplified,
+                             const TimedTrajectory& trajectory) {
+    if (!collision_marker_enabled_ || !planned_path_markers_) return;
+    visualization_msgs::msg::MarkerArray markers;
+    visualization_msgs::msg::Marker clear;
+    clear.action = visualization_msgs::msg::Marker::DELETEALL;
+    markers.markers.push_back(clear);
+    if (!raw.empty())
+      markers.markers.push_back(
+          lineMarker(1, "raw_rrt_tcp_path", raw, .6f, .6f, .6f, .45f, .004));
+    if (!simplified.empty())
+      markers.markers.push_back(lineMarker(2, "simplified_tcp_path",
+                                           simplified, .1f, .45f, 1.f, .8f,
+                                           .007));
+    if (!trajectory.states.empty())
+      markers.markers.push_back(lineMarker(3, "executable_tcp_trajectory",
+                                           trajectory.states, .1f, 1.f, .25f,
+                                           1.f, .01));
+    planned_path_markers_->publish(markers);
+  }
+
+  void failPlanning(Trigger::Response& response, const std::string& status,
+                    const std::string& reason) {
+    logLiftTrace("planning_failed", status + ": " + reason);
+    prepared_trajectory_ = {};
+    planned_path_raw_.clear();
+    planned_path_simplified_.clear();
+    sequence_active_ = false;
+    sequence_planned_ = false;
+    preparing_mode_ = replan_after_mode_ = false;
+    manual_ = false;
+    candidate_.valid = false;
+    active_planning_request_id_ = 0;
+    planning_status_ = "REQUEST_ID=" +
+                       std::to_string(active_transaction_.request_id) +
+                       " ENVIRONMENT=" +
+                       collision::collisionEnvironmentBackendName(
+                           active_transaction_.backend) +
+                       " " + status + ": " + reason;
+    clearPlannedMarkers();
+    if (guard_) guard_->abort(planning_status_);
+    response.success = false;
+    response.message = planning_status_;
+    RCLCPP_WARN(get_logger(), "%s", planning_status_.c_str());
+    lift_trace_active_ = false;
+    publish();
+  }
+
+  void logLiftTrace(const std::string& stage, const std::string& status,
+                    double measured = std::numeric_limits<double>::quiet_NaN()) {
+    if (!lift_trace_active_) return;
+    const double trajectory_lift =
+        prepared_trajectory_.states.empty()
+            ? std::numeric_limits<double>::quiet_NaN()
+            : prepared_trajectory_.states.back()[0];
+    RCLCPP_INFO(
+        get_logger(),
+        "[LIFT_TRACE] stage=%s target_z=%.6f target_frame=%s "
+        "transformed_z=%.6f ik_lift=%.6f planner_lift=%.6f "
+        "trajectory_lift=%.6f commanded_lift=%.6f measured_lift=%.6f "
+        "status=%s",
+        stage.c_str(), active_transaction_.target_z,
+        active_transaction_.target_frame.c_str(),
+        active_transaction_.transformed_z, active_transaction_.q_goal[0],
+        active_transaction_.q_goal[0], trajectory_lift, commanded_lift_,
+        measured, status.c_str());
+  }
+
+  double sceneAgeSeconds(
+      const collision::OctoMapSceneSnapshot& snapshot) const {
+    return std::chrono::duration<double>(
+               collision::OctoMapEnvironment::Clock::now() -
+               snapshot.received_at)
+        .count();
+  }
+
+  bool selectPlanningSnapshot(Trigger::Response& response) {
+    if (collision_backend_ ==
+        collision::CollisionEnvironmentBackend::Primitive) {
+      active_scene_id_ = 0;
+      active_octomap_snapshot_ = {};
+      return collision_checker_ && collision_planner_;
+    }
+    const auto snapshot = octomap_scene_store_->snapshot();
+    if (!snapshot.available()) {
+      failPlanning(response, collision::sceneFreshnessName(snapshot.status),
+                   snapshot.reason);
+      return false;
+    }
+    try {
+      auto checker = std::make_unique<collision::StateValidityChecker>(
+          model_, active_bounds_, robot_collision_model_,
+          withoutSelf(snapshot.environment));
+      auto planner =
+          std::make_unique<collision::RrtConnectPlanner>(*checker);
+      collision_checker_ = std::move(checker);
+      collision_planner_ = std::move(planner);
+      active_scene_id_ = snapshot.id;
+      active_octomap_snapshot_ = snapshot;
+      return true;
+    } catch (const std::exception& e) {
+      failPlanning(response, "SCENE_UNAVAILABLE", e.what());
+      return false;
+    }
+  }
+
+  void moveToPreviewWithPlanning(Trigger::Response& response) {
+    const uint64_t request_id = ++planning_request_id_;
+    active_transaction_.request_id = request_id;
+    active_transaction_.backend = collision_backend_;
+    active_transaction_.options = collision_options_;
+    lift_trace_active_ = false;
+    commanded_lift_ = std::numeric_limits<double>::quiet_NaN();
+    prepared_trajectory_ = {};
+    planned_path_raw_.clear();
+    planned_path_simplified_.clear();
+    manual_ = false;
+    updateCandidate();
+    if (!candidate_.valid || config_.lift_only) {
+      failPlanning(response, "IK_FAILED",
+                   "a valid 5-DoF IK target is required");
+      return;
+    }
+    // Switch to trajectory mode first and plan afterwards: the arm settles a
+    // few millimeters in the switch, which would invalidate a plan made before.
+    const auto before = input();
+    if (!dry_ && before.mode_fresh && !before.trajectory_mode &&
+        trajectory_mode_client_ && trajectory_mode_client_->service_is_ready()) {
+      preparing_mode_ = true;
+      replan_after_mode_ = true;
+      mode_ready_since_ = -1;
+      sequence_active_ = true;
+      sequence_planned_ = true;
+      mode_request_sent_ = steady();
+      trajectory_mode_client_->async_send_request(
+          std::make_shared<Trigger::Request>(),
+          [this](rclcpp::Client<Trigger>::SharedFuture future) {
+            if (!future.get()->success && replan_after_mode_) {
+              replan_after_mode_ = preparing_mode_ = sequence_active_ = false;
+              guard_->abort("driver rejected trajectory mode");
+              publish();
+            }
+          });
+      response.success = true;
+      response.message = "switching to trajectory mode; planning follows";
+      publish();
+      return;
+    }
+    const Candidate request_candidate = candidate_;
+    lift_trace_active_ = true;
+    active_transaction_.q_goal = request_candidate.q;
+    active_transaction_.target_frame = preview_target_frame_;
+    active_transaction_.target_z = preview_target_z_;
+    active_transaction_.transformed_z = preview_transformed_z_;
+    sequence_target_ = request_candidate.q;
+    if ((sequence_target_.array() < active_bounds_.lower.array()).any() ||
+        (sequence_target_.array() > active_bounds_.upper.array()).any()) {
+      failPlanning(response, "GOAL_IN_COLLISION",
+                   "target outside hardware/model limits");
+      return;
+    }
+    if (!selectPlanningSnapshot(response)) {
+      if (!response.message.empty()) return;
+      failPlanning(response, "SCENE_UNAVAILABLE",
+                   "selected collision environment is not ready");
+      return;
+    }
+
+    guard_->disarm();
+    auto check = guard_->arm();
+    auto measured = input();
+    const bool switch_mode =
+        !dry_ && measured.mode_fresh && !measured.trajectory_mode;
+    if (switch_mode) measured.trajectory_mode = true;
+    if (check.ok) check = guard_->preflight(measured);
+    if (check.ok && (!measured.controller_idle || measured.active_goal_present))
+      check = {false, "controller busy"};
+    if (!check.ok) {
+      failPlanning(response, "EXECUTION_REJECTED", check.reason);
+      return;
+    }
+
+    const Vector start = measured.q;
+    const Vector goal = request_candidate.q;
+    active_transaction_.request_id = request_id;
+    active_transaction_.q_start = start;
+    active_transaction_.q_goal = goal;
+    active_transaction_.desired_tcp = tcpPoint(goal);
+    active_transaction_.backend = collision_backend_;
+    active_transaction_.scene_id = active_scene_id_;
+    active_transaction_.scene_received_at =
+        active_octomap_snapshot_.received_at;
+    active_transaction_.options = collision_options_;
+    collision_checker_->resetStatistics();
+    const auto start_valid = collision_checker_->isStateValid(start);
+    if (!start_valid.valid) {
+      failPlanning(response, "START_IN_COLLISION", start_valid.reason);
+      publishCollisionDiagnostics(start, goal, start_valid, "START");
+      return;
+    }
+    const auto goal_valid = collision_checker_->isStateValid(goal);
+    if (!goal_valid.valid) {
+      failPlanning(response, "GOAL_IN_COLLISION", goal_valid.reason);
+      publishCollisionDiagnostics(start, goal, goal_valid, "GOAL");
+      return;
+    }
+    const auto direct = collision_checker_->isEdgeValid(
+        start, goal, collision_options_.edge_resolution);
+
+    const auto plan =
+        collision_planner_->plan(start, goal, collision_options_);
+    if (!plan.success) {
+      const auto statistics = collision_checker_->statistics();
+      std::ostringstream reason;
+      reason << "IK=SUCCESS START=FREE GOAL=FREE DIRECT_EDGE="
+             << (direct.valid ? "FREE" : "COLLISION")
+             << " PLANNER=FAILED failure=" << plan.message
+             << " iterations=" << plan.iterations
+             << " state_checks=" << statistics.state_checks
+             << " edge_checks=" << statistics.edge_checks
+             << " environment_queries=" << statistics.environment_queries
+             << " collision_checking_time_ms="
+             << statistics.collision_checking_time_ms
+             << " planning_time_ms=" << plan.planning_time_ms;
+      failPlanning(response, "PLANNING_FAILED", reason.str());
+      if (!direct.valid)
+        publishCollisionDiagnostics(start, goal, direct.first_invalid,
+                                    "DIRECT EDGE");
+      return;
+    }
+    const auto timed =
+        buildTimedTrajectory(plan.path(), timingOptions());
+    if (!timed.success) {
+      failPlanning(response, "TRAJECTORY_GENERATION_FAILED", timed.message);
+      return;
+    }
+    const auto final_validation =
+        validateTimedTrajectoryCollision(timed.trajectory);
+    if (!final_validation.ok) {
+      failPlanning(response, "TRAJECTORY_COLLISION",
+                   final_validation.reason);
+      return;
+    }
+
+    candidate_ = request_candidate;
+    manual_ = true;
+    sequence_active_ = true;
+    sequence_planned_ = true;
+    active_planning_request_id_ = request_id;
+    prepared_trajectory_ = timed.trajectory;
+    planned_path_raw_ = plan.raw_path;
+    planned_path_simplified_ = plan.path();
+    const auto statistics = collision_checker_->statistics();
+
+    std::ostringstream status;
+    status << "REQUEST_ID=" << request_id
+           << " ENVIRONMENT="
+           << collision::collisionEnvironmentBackendName(collision_backend_)
+           << " SCENE_ID=" << active_scene_id_;
+    if (collision_backend_ ==
+        collision::CollisionEnvironmentBackend::OctoMap) {
+      status << " SCENE_AGE=" << sceneAgeSeconds(active_octomap_snapshot_)
+             << " SCENE_STATUS=AVAILABLE";
+    }
+    status << " IK=SUCCESS START=FREE GOAL=FREE DIRECT_EDGE="
+           << (direct.valid ? "FREE" : "COLLISION")
+           << " DIRECT_PATH=" << (direct.valid ? "FREE" : "COLLISION")
+           << " PLANNER=" << (plan.direct_path ? "DIRECT" : "RRT_CONNECT")
+           << " iterations=" << plan.iterations
+           << " state_checks=" << statistics.state_checks
+           << " edge_checks=" << statistics.edge_checks
+           << " environment_queries=" << statistics.environment_queries
+           << " collision_checking_time_ms="
+           << statistics.collision_checking_time_ms
+           << " planning_time_ms=" << plan.planning_time_ms
+           << " raw_waypoints=" << plan.raw_path.size()
+           << " simplified_waypoints=" << plan.path().size()
+           << " trajectory_points=" << prepared_trajectory_.states.size()
+           << " FINAL_SNAPSHOT_VALIDATION=PASS final_validation=PASS";
+    planning_status_ = status.str();
+    logLiftTrace("planned", "success", measured.q[0]);
+    RCLCPP_INFO(get_logger(), "%s", planning_status_.c_str());
+    publishPlannedMarkers(plan.raw_path, plan.path(), prepared_trajectory_);
+
+    if (switch_mode) {
+      if (!trajectory_mode_client_ ||
+          !trajectory_mode_client_->service_is_ready()) {
+        failPlanning(response, "EXECUTION_REJECTED",
+                     "trajectory mode service unavailable");
+        return;
+      }
+      preparing_mode_ = true;
+      mode_request_sent_ = steady();
+      trajectory_mode_client_->async_send_request(
+          std::make_shared<Trigger::Request>(),
+          [this, request_id](rclcpp::Client<Trigger>::SharedFuture future) {
+            if (!preparing_mode_ || !sequence_active_ || !sequence_planned_ ||
+                active_planning_request_id_ != request_id)
+              return;
+            if (!future.get()->success) {
+              Trigger::Response response;
+              failPlanning(response, "EXECUTION_REJECTED",
+                           "driver rejected trajectory mode");
+            }
+          });
+      response.success = true;
+      response.message = planning_status_ + "; preparing trajectory mode";
+      publish();
+      return;
+    }
+
+    executePreparedPlannedTrajectory(response);
+  }
+
+  Check validateLiveSceneBeforeExecution() {
+    if (active_planning_request_id_ != planning_request_id_ ||
+        active_transaction_.request_id != active_planning_request_id_) {
+      return {false, "STALE_PLANNING_RESULT: request superseded"};
+    }
+    if (collision_backend_ ==
+        collision::CollisionEnvironmentBackend::Primitive) {
+      return validateTimedTrajectoryCollision(prepared_trajectory_);
+    }
+
+    const auto latest = octomap_scene_store_->snapshot();
+    if (!latest.available()) {
+      return {false, std::string(collision::sceneFreshnessName(latest.status)) +
+                         ": " + latest.reason};
+    }
+    if (latest.id == active_scene_id_) {
+      const auto validation =
+          validateTimedTrajectoryCollision(prepared_trajectory_);
+      if (!validation.ok) return validation;
+      return {true, "LIVE_PRE_EXECUTION_VALIDATION=PASS scene_unchanged"};
+    }
+
+    try {
+      auto latest_checker =
+          std::make_unique<collision::StateValidityChecker>(
+              model_, active_bounds_, robot_collision_model_,
+              withoutSelf(latest.environment));
+      const auto validation = validateTimedTrajectoryCollision(
+          prepared_trajectory_, latest_checker.get());
+      if (!validation.ok) {
+        return {false, "LIVE_SCENE_CHANGED: newest scene " +
+                           std::to_string(latest.id) + " rejects trajectory: " +
+                           validation.reason};
+      }
+      collision_checker_ = std::move(latest_checker);
+      collision_planner_ =
+          std::make_unique<collision::RrtConnectPlanner>(*collision_checker_);
+      active_scene_id_ = latest.id;
+      active_octomap_snapshot_ = latest;
+      active_transaction_.scene_id = latest.id;
+      active_transaction_.scene_received_at = latest.received_at;
+      return {true, "LIVE_PRE_EXECUTION_VALIDATION=PASS revalidated_scene=" +
+                        std::to_string(latest.id)};
+    } catch (const std::exception& e) {
+      return {false, std::string("SCENE_UNAVAILABLE: ") + e.what()};
+    }
+  }
+
+  void executePreparedPlannedTrajectory(Trigger::Response& response) {
+    if (!sequence_active_ || !sequence_planned_ ||
+        prepared_trajectory_.states.empty()) {
+      failPlanning(response, "PATH_INVALID",
+                   "no prepared collision-planned trajectory");
+      return;
+    }
+    const auto live_validation = validateLiveSceneBeforeExecution();
+    if (!live_validation.ok) {
+      failPlanning(response, "LIVE_PRE_EXECUTION_REJECTED",
+                   live_validation.reason);
+      return;
+    }
+    planning_status_ += "; " + live_validation.reason;
+    const auto measured = input();
+    auto check = guard_->validateTrajectory(
+        measured, candidate_, prepared_trajectory_.states,
+        prepared_trajectory_.times_from_start, steady());
+    if (!check.ok) {
+      failPlanning(response, "TRAJECTORY_GENERATION_FAILED", check.reason);
+      return;
+    }
+    execute(response);
+    if (response.success) {
+      planning_status_ += "; EXECUTION=STARTED";
+    } else {
+      planning_status_ += "; EXECUTION_REJECTED=" + response.message;
+      sequence_active_ = false;
+      sequence_planned_ = false;
+      prepared_trajectory_ = {};
+      manual_ = false;
+    }
+    if (dry_) {
+      sequence_active_ = false;
+      sequence_planned_ = false;
+      prepared_trajectory_ = {};
+      manual_ = false;
+    }
+    publish();
   }
   void startNextSegment(Trigger::Response& response) {
     const auto measured = input();
@@ -724,7 +1740,10 @@ class Executor : public stretch_robot_interface::InterfaceNode {
     candidate_.valid = true;
     candidate_.received = steady();
     candidate_.revision = ++revision_;
-    if (check.ok) check = guard_->validate(measured, candidate_, duration_, steady());
+    if (check.ok)
+      check = guard_->validate(measured, candidate_,
+                               segmentDuration(candidate_.q - measured.q),
+                               steady());
     if (check.ok) execute(response);
     else response.message = check.reason;
     if (!response.success || dry_) {
@@ -742,8 +1761,9 @@ class Executor : public stretch_robot_interface::InterfaceNode {
     }
     refreshCandidate();
     if (!dry_ && (!action_ || !action_->action_server_is_ready() ||
-                  !stop_client_->service_is_ready() ||
-                  !runstop_client_->service_is_ready())) {
+                  (!sim_bypass_hardware_checks_ &&
+                   (!stop_client_->service_is_ready() ||
+                    !runstop_client_->service_is_ready())))) {
       guard_->abort("hardware action/stop/runstop interface unavailable");
       r.message = guard_->reason();
       publish();
@@ -776,16 +1796,36 @@ class Executor : public stretch_robot_interface::InterfaceNode {
       return false;
     }
     auto trajectory = Guard::trajectory(*guard_->plan(), config_.lift_only);
+    commanded_lift_ = trajectory.points.empty()
+                            ? std::numeric_limits<double>::quiet_NaN()
+                            : trajectory.points.back().positions.front();
+    logLiftTrace("commanded", "submitted", input().q[0]);
     TrajectoryAction::Goal goal;
     goal.trajectory = trajectory;
     goal.goal_time_tolerance =
         rclcpp::Duration::from_seconds(config_.execution_slack);
-    control_msgs::msg::JointTolerance tol;
-    tol.name = "joint_lift";
-    tol.position = config_.tracking_error[0];
-    goal.path_tolerance = {tol};
-    tol.position = config_.goal_tolerance[0];
-    goal.goal_tolerance = {tol};
+    auto append_tolerances = [&](const Vector& logical,
+                                 std::vector<control_msgs::msg::JointTolerance>& out) {
+      out.clear();
+      const auto names = Guard::trajectoryJointNames(config_.lift_only);
+      for (const auto& name : names) {
+        control_msgs::msg::JointTolerance tol;
+        tol.name = name;
+        if (name == "joint_lift")
+          tol.position = logical[0];
+        else if (name.rfind("joint_arm_l", 0) == 0)
+          tol.position = logical[1] / 4.0;
+        else if (name == "joint_wrist_yaw")
+          tol.position = logical[2];
+        else if (name == "joint_wrist_pitch")
+          tol.position = logical[3];
+        else if (name == "joint_wrist_roll")
+          tol.position = logical[4];
+        out.push_back(tol);
+      }
+    };
+    append_tolerances(config_.tracking_error, goal.path_tolerance);
+    append_tolerances(config_.goal_tolerance, goal.goal_tolerance);
     pending_ = true;
     accepted_ = false;
     tracking_synchronized_ = false;
@@ -881,6 +1921,8 @@ class Executor : public stretch_robot_interface::InterfaceNode {
           else
             reason << " controller_result_unavailable";
           guard_->abort(reason.str());
+          logLiftTrace("execution_failed", reason.str(), input().q[0]);
+          lift_trace_active_ = false;
           RCLCPP_ERROR(get_logger(), "%s", reason.str().c_str());
           sendStop();
           failLiftAction(reason.str());
@@ -900,8 +1942,13 @@ class Executor : public stretch_robot_interface::InterfaceNode {
         guard_->state() != State::EXECUTING)
       return;
     controller_success_pending_ = false;
-    auto c = guard_->finish(input(), true, steady());
+    double finish_time = steady();
+    if (sim_bypass_hardware_checks_ && guard_->plan())
+      finish_time = guard_->plan()->started_at + guard_->plan()->duration;
+    auto c = guard_->finish(input(), true, finish_time);
     if (!c.ok) {
+      logLiftTrace("execution_failed", c.reason, input().q[0]);
+      lift_trace_active_ = false;
       sendStop();
       failLiftAction(c.reason);
     } else if (lift_goal_) {
@@ -921,6 +1968,10 @@ class Executor : public stretch_robot_interface::InterfaceNode {
       else
         finishLiftAction(true, false,
                          "absolute lift target reached and measured");
+    }
+    if (c.ok && !lift_goal_) {
+      logLiftTrace("execution_finished", "success", input().q[0]);
+      lift_trace_active_ = false;
     }
     candidate_.valid = false;
     publish();
@@ -1100,8 +2151,17 @@ class Executor : public stretch_robot_interface::InterfaceNode {
     publishLiftStatus();
   }
   void stopAndDisarm(bool stop) {
-    preparing_mode_ = false;
+    ++planning_request_id_;
+    active_planning_request_id_ = 0;
+    preparing_mode_ = replan_after_mode_ = false;
     sequence_active_ = false;
+    sequence_planned_ = false;
+    prepared_trajectory_ = {};
+    planned_path_raw_.clear();
+    planned_path_simplified_.clear();
+    planning_status_ = stop ? "STOP: pending collision plan invalidated"
+                            : "DISARM: pending collision plan invalidated";
+    clearPlannedMarkers();
     bool moving = pending_ || (guard_ && guard_->state() == State::EXECUTING);
     if (guard_) {
       if (stop || moving)
@@ -1121,6 +2181,11 @@ class Executor : public stretch_robot_interface::InterfaceNode {
   void sendStop() {
     if (dry_ || !action_) return;
     controller_success_pending_ = false;
+    if (sim_bypass_hardware_checks_) {
+      if (handle_) action_->async_cancel_goal(handle_);
+      stop_unconfirmed_ = false;
+      return;
+    }
     stop_unconfirmed_ = true;
     stop_sent_ = steady();
     if (handle_) action_->async_cancel_goal(handle_);
@@ -1187,7 +2252,17 @@ class Executor : public stretch_robot_interface::InterfaceNode {
     // Inspection-only trajectory can be generated even when physical readiness
     // blocks approval. It is labelled approved=false and is never published.
     try {
-      if (in.fresh && candidate_.valid) {
+      if (guard_ && guard_->plan()) {
+        auto t = Guard::trajectory(*guard_->plan(), config_.lift_only);
+        for (size_t i = 0; i < t.points.size(); ++i) {
+          auto& v = t.points[i];
+          if (i) f << ",";
+          f << "{\"t\":" << rclcpp::Duration(v.time_from_start).seconds();
+          for (size_t axis = 0; axis < v.positions.size(); ++axis)
+            f << ",\"p" << axis << "\":" << v.positions[axis];
+          f << "}";
+        }
+      } else if (in.fresh && candidate_.valid) {
         Plan p;
         p.start = in.q;
         p.target = config_.lift_only ? in.q : candidate_.q;
@@ -1229,7 +2304,11 @@ class Executor : public stretch_robot_interface::InterfaceNode {
       << " startpoint_guard=" << start_guard_
       << " candidate_revision=" << candidate_.revision
       << " sequence_active=" << sequence_active_
+      << " sequence_planned=" << sequence_planned_
       << " sequence_target=[" << sequence_target_.transpose() << "]"
+      << " planned_trajectory_points="
+      << prepared_trajectory_.states.size()
+      << " planning_status={" << planning_status_ << "}"
       << " reason=" << (guard_ ? guard_->reason() : "waiting for model");
     if (guard_ && guard_->plan())
       s << " start=[" << guard_->plan()->start.transpose() << "] target=["
@@ -1274,30 +2353,60 @@ class Executor : public stretch_robot_interface::InterfaceNode {
        pending_ = false, accepted_ = false, stop_unconfirmed_ = false,
        runstop_requested_ = false, tracking_synchronized_ = false,
        lift_next_pending_ = false, lift_cancel_requested_ = false,
-       controller_success_pending_ = false;
+       controller_success_pending_ = false,
+       collision_planning_enabled_ = false,
+       collision_marker_enabled_ = true;
   double duration_ = 5, lift_delta_ = .01, mode_time_ = -1, stream_time_ = -1,
          diag_time_ = -1, param_time_ = -1, last_param_query_ = -1,
          param_sent_ = -1, preview_time_ = -1, preview_status_time_ = -1,
          preview_stamp_ = 0, sent_time_ = 0, feedback_time_ = 0, stop_sent_ = 0,
          last_publish_ = 0, segment_target_ = 0, lift_target_display_ = 0,
-         lift_max_tracking_error_ = 0, controller_result_time_ = 0;
+         lift_max_tracking_error_ = 0, controller_result_time_ = 0,
+         preview_target_z_ = std::numeric_limits<double>::quiet_NaN(),
+         preview_transformed_z_ = std::numeric_limits<double>::quiet_NaN(),
+         commanded_lift_ = std::numeric_limits<double>::quiet_NaN();
+  std::string preview_target_frame_;
+  Eigen::Isometry3d odom_base_ = Eigen::Isometry3d::Identity();
+  std::string odom_frame_;
+  double odom_time_ = -1, self_ignore_margin_ = 0.08, mode_ready_since_ = -1;
+  bool replan_after_mode_ = false;
+  bool odom_still_ = false;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   int64_t param_request_id_ = 0;
   uint64_t revision_ = 0;
   Candidate candidate_;
-  bool sequence_active_ = false, preparing_mode_ = false;
+  bool lift_trace_active_ = false;
+  bool sequence_active_ = false, sequence_planned_ = false,
+       preparing_mode_ = false;
   double mode_request_sent_ = 0.;
   Vector sequence_target_ = Vector::Zero();
+  collision::PlannerOptions collision_options_;
+  collision::CollisionEnvironmentBackend collision_backend_ =
+      collision::CollisionEnvironmentBackend::Primitive;
+  std::shared_ptr<const collision::RobotCollisionModel> robot_collision_model_;
+  std::unique_ptr<collision::OctoMapSceneStore> octomap_scene_store_;
+  collision::OctoMapSceneSnapshot active_octomap_snapshot_;
+  PlanningTransaction active_transaction_;
+  uint64_t active_scene_id_ = 0;
+  std::unique_ptr<collision::StateValidityChecker> collision_checker_;
+  std::unique_ptr<collision::RrtConnectPlanner> collision_planner_;
+  TimedTrajectory prepared_trajectory_;
+  std::vector<Vector> planned_path_raw_, planned_path_simplified_;
   Vector preview_q_ = Vector::Zero(), status_q_ = Vector::Zero(),
          preview_seed_ = Vector::Zero(), max_tracking_error_ = Vector::Zero();
   std::string mode_ = "unknown", diag_reason_, report_path_, action_name_,
-              lift_state_ = "DISARMED";
+              octomap_topic_, lift_state_ = "DISARMED",
+              planning_status_ = "collision_planning=uninitialized";
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_, lift_status_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+      planned_path_markers_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mode_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr stream_sub_;
   rclcpp::Subscription<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr
       diag_sub_,
       preview_status_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr preview_sub_;
+  rclcpp::Subscription<octomap_msgs::msg::Octomap>::SharedPtr octomap_sub_;
   rclcpp::Subscription<action_msgs::msg::GoalStatusArray>::SharedPtr
       action_status_;
   rclcpp::Client<rcl_interfaces::srv::GetParameters>::SharedPtr parameters_;
@@ -1310,6 +2419,7 @@ class Executor : public stretch_robot_interface::InterfaceNode {
   rclcpp::Service<SetBool>::SharedPtr arm_service_;
   std::vector<rclcpp::Service<Trigger>::SharedPtr> services_;
   rclcpp::TimerBase::SharedPtr timer_;
+  uint64_t planning_request_id_ = 0, active_planning_request_id_ = 0;
 };
 // Keep ROS alive for a short cancellation drain on SIGINT/SIGTERM.
 #include <csignal>

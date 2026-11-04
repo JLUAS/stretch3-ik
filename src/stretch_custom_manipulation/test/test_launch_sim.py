@@ -1,4 +1,3 @@
-"""Launch test: one-click 5-DoF goal, duplicate click, unreachable goal and STOP in the domain-20 kinematic simulation."""
 import os
 import copy
 import math
@@ -117,14 +116,48 @@ class TestSimulation(unittest.TestCase):
             end = time.monotonic() + .3
             while time.monotonic() < end:
                 rclpy.spin_once(node, timeout_sec=.02)
+        def pose_from_logical(lift, arm, yaw=0., pitch=-.6, roll=0.):
+            requested = {
+                'joint_lift': lift,
+                'joint_arm_l0': arm / 4,
+                'joint_arm_l1': arm / 4,
+                'joint_arm_l2': arm / 4,
+                'joint_arm_l3': arm / 4,
+                'joint_wrist_yaw': yaw,
+                'joint_wrist_pitch': pitch,
+                'joint_wrist_roll': roll,
+            }
+            expected = tcp_pose(requested)
+            from scipy.spatial.transform import Rotation
+            pose = copy.deepcopy(latest['target'].pose)
+            pose.position.x, pose.position.y, pose.position.z = expected[:3, 3].tolist()
+            q = Rotation.from_matrix(expected[:3, :3]).as_quat()
+            pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w = q.tolist()
+            return pose, expected
         try:
             wait(lambda: all(k in latest for k in ('measured', 'preview', 'ik', 'target', 'executor'))
                  and latest['ik'].status[0].message == 'success')
+            obstructed_pose, obstructed_expected = pose_from_logical(
+                0.31678538949333435, 0.09634423926546742)
+            send(obstructed_pose)
+            self.assertEqual(latest['ik'].status[0].message, 'success')
+            result = call(move)
+            self.assertTrue(result.success, result.message)
+            wait(lambda: 'DIRECT_PATH=COLLISION' in latest['executor'] and
+                 'PLANNER=RRT_CONNECT' in latest['executor'] and
+                 'final_validation=PASS' in latest['executor'])
+            print('OBSTRUCTED STATUS:', latest['executor'])
+            wait(lambda: 'state=COMPLETE' in latest['executor'] and 'sequence_active=0' in latest['executor'], 45)
+            measured = dict(zip(latest['measured'].name, latest['measured'].position))
+            actual = tcp_pose(measured)
+            self.assertLess(np.linalg.norm(actual[:3, 3] - obstructed_expected[:3, 3]), .002)
+            print('PASS: obstructed direct path used RRT and reached target')
+
             initial = dict(zip(latest['measured'].name, latest['measured'].position))
             requested = dict(initial)
-            requested['joint_lift'] += .022
+            requested['joint_lift'] += .060
             for name in ('joint_arm_l0', 'joint_arm_l1', 'joint_arm_l2', 'joint_arm_l3'):
-                requested[name] += .018 / 4
+                requested[name] -= .035 / 4
             requested['joint_wrist_yaw'] += .07
             requested['joint_wrist_pitch'] += .06
             requested['joint_wrist_roll'] += .08
@@ -136,9 +169,14 @@ class TestSimulation(unittest.TestCase):
             pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w = q.tolist()
             send(pose)
             self.assertEqual(latest['ik'].status[0].message, 'success')
+            before_second_status = latest['executor']
             result = call(move)
             self.assertTrue(result.success, result.message)
             self.assertFalse(call(move).success, 'Duplicate click must not start another sequence')
+            wait(lambda: latest['executor'] != before_second_status and
+                 'PLANNER=' in latest['executor'] and
+                 'final_validation=PASS' in latest['executor'])
+            print('SECOND STATUS:', latest['executor'])
             wait(lambda: 'state=COMPLETE' in latest['executor'] and 'sequence_active=0' in latest['executor'], 45)
             measured = dict(zip(latest['measured'].name, latest['measured'].position))
             actual = tcp_pose(measured)

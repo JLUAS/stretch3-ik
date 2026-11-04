@@ -10,17 +10,24 @@ namespace stretch_custom_kinematics {
 namespace {
 const std::array<std::string, 5> names = {"lift", "arm_extension", "wrist_yaw",
                                           "wrist_pitch", "wrist_roll"};
-using Residual = Eigen::Matrix<double, 6, 1>;
-Residual residual(const Eigen::Isometry3d& actual,
-                  const Eigen::Isometry3d& target) {
-  Residual r;
+Eigen::VectorXd residual(const Eigen::Isometry3d& actual,
+                         const Eigen::Isometry3d& target, bool grasp) {
+  Eigen::VectorXd r(grasp ? 9 : 6);
   r.head<3>() = target.translation() - actual.translation();
-  // Three components on S2 have only two independent degrees of freedom.
-  r.tail<3>() = 0.2 * (target.linear().col(2) - actual.linear().col(2));
+  if (grasp) {
+    // Small orientation weight: when a fixed base cannot match the full pose,
+    // the optimum keeps position and lets the approach axis deviate slightly.
+    r.segment<3>(3) = 0.05 * (target.linear().col(0) - actual.linear().col(0));
+    r.tail<3>() = 0.05 * (target.linear().col(1) - actual.linear().col(1));
+  } else {
+    // Three components on S2 have only two independent degrees of freedom.
+    r.tail<3>() = 0.2 * (target.linear().col(2) - actual.linear().col(2));
+  }
   return r;
 }
-double directionError(const Eigen::Isometry3d& a, const Eigen::Isometry3d& b) {
-  auto x = a.linear().col(2), y = b.linear().col(2);
+double axisError(const Eigen::Isometry3d& a, const Eigen::Isometry3d& b,
+                 int axis) {
+  auto x = a.linear().col(axis), y = b.linear().col(axis);
   return std::atan2(x.cross(y).norm(), x.dot(y));
 }
 bool validTarget(const Eigen::Isometry3d& t) {
@@ -145,7 +152,9 @@ InverseKinematics::InverseKinematics(
       o.state_timeout <= 0 || !std::isfinite(o.position_tolerance) ||
       !std::isfinite(o.direction_tolerance) ||
       !std::isfinite(o.state_timeout) || o.max_iterations < 0 ||
-      o.max_attempts < 1)
+      o.max_attempts < 1 || !(o.grasp_position_tolerance > 0) ||
+      !(o.approach_tolerance > 0) || !(o.finger_tolerance > 0) ||
+      !(o.max_base_offset >= 0) || !std::isfinite(o.max_base_offset))
     throw std::invalid_argument("Invalid IK options");
   // Conservative URDF-derived sphere: triangle inequality for every origin
   // plus every bounded prismatic translation. Only this certificate returns
@@ -176,6 +185,16 @@ IkResult InverseKinematics::solve(const geometry_msgs::msg::Pose& p,
 }
 IkResult InverseKinematics::solve(const Eigen::Isometry3d& target,
                                   const RobotState& current, double age) const {
+  return solveImpl(target, current, age, false, false);
+}
+IkResult InverseKinematics::solveGrasp(const Eigen::Isometry3d& target,
+                                       const RobotState& current, double age,
+                                       bool free_base) const {
+  return solveImpl(target, current, age, true, free_base);
+}
+IkResult InverseKinematics::solveImpl(const Eigen::Isometry3d& target,
+                                      const RobotState& current, double age,
+                                      bool grasp, bool free_base) const {
   const auto begin = std::chrono::steady_clock::now();
   IkResult result;
   result.solution = current;
@@ -194,68 +213,93 @@ IkResult InverseKinematics::solve(const Eigen::Isometry3d& target,
     return finish(IkFailure::StaleState);
   if (!bounds_.contains(coordinates(current)))
     return finish(IkFailure::JointLimit);
-  if (target.translation().norm() > reach_bound_ + options_.position_tolerance)
+  const double base_range = free_base ? options_.max_base_offset : 0;
+  if (target.translation().norm() >
+      reach_bound_ + base_range + options_.position_tolerance)
     return finish(IkFailure::UnreachableTarget);
-  JointVector best = coordinates(current);
+  const int n = free_base ? 6 : 5;
+  Eigen::VectorXd lower(n), upper(n), seed(n);
+  lower.head<5>() = bounds_.lower;
+  upper.head<5>() = bounds_.upper;
+  seed.head<5>() = coordinates(current);
+  if (free_base) {
+    lower[5] = -base_range;
+    upper[5] = base_range;
+    seed[5] = 0;
+  }
+  auto pose = [&](const Eigen::VectorXd& v) {
+    Eigen::Isometry3d t = fk_.computeTcpTransform(
+        withCoordinates(current, JointVector(v.head<5>())));
+    if (free_base) t.pretranslate(Eigen::Vector3d(v[5], 0, 0));
+    return t;
+  };
+  // A free base makes the grasp pose exactly solvable; require a tight match
+  // so the reported base offset is centered.
+  const double tight = free_base ? .2 : 1.;
+  auto accepted_solution = [&]() {
+    if (!grasp)
+      return result.position_error <= options_.position_tolerance &&
+             result.direction_error <= options_.direction_tolerance;
+    return result.position_error <=
+               options_.grasp_position_tolerance * tight &&
+           result.approach_error <= options_.approach_tolerance * tight &&
+           result.direction_error <= options_.finger_tolerance * tight;
+  };
+  Eigen::VectorXd best = seed;
   double best_cost = std::numeric_limits<double>::infinity();
   for (int attempt = 0; attempt < options_.max_attempts; ++attempt) {
     ++result.attempts;
-    JointVector q = coordinates(current);
+    Eigen::VectorXd q = seed;
     // Always start with current measured state. Deterministic bounded restarts
     // escape local minima; none is the known target-generating configuration.
     if (attempt > 0) {
-      const unsigned primes[5] = {2, 3, 5, 7, 11};
-      for (int j = 0; j < 5; ++j)
-        q[j] = bounds_.lower[j] + (bounds_.upper[j] - bounds_.lower[j]) *
-                                      radicalInverse(attempt, primes[j]);
+      const unsigned primes[6] = {2, 3, 5, 7, 11, 13};
+      for (int j = 0; j < n; ++j)
+        q[j] = lower[j] +
+               (upper[j] - lower[j]) * radicalInverse(attempt, primes[j]);
     }
     double damping = 1e-7;
     for (int iteration = 0; iteration < options_.max_iterations; ++iteration) {
       ++result.iterations;
-      auto pose = fk_.computeTcpTransform(withCoordinates(current, q));
-      auto r = residual(pose, target);
+      auto actual = pose(q);
+      auto r = residual(actual, target, grasp);
       double cost = r.squaredNorm();
       if (cost < best_cost) {
         best_cost = cost;
         best = q;
         result.position_error =
-            (pose.translation() - target.translation()).norm();
-        result.direction_error = directionError(pose, target);
-        result.orientation_error = poseError(pose, target).orientation_rad;
-        result.solution = withCoordinates(current, q);
+            (actual.translation() - target.translation()).norm();
+        result.direction_error = axisError(actual, target, grasp ? 1 : 2);
+        result.approach_error = axisError(actual, target, 0);
+        result.orientation_error = poseError(actual, target).orientation_rad;
+        result.solution = withCoordinates(current, JointVector(q.head<5>()));
+        result.base_dx = free_base ? q[5] : 0;
       }
-      if (result.position_error <= options_.position_tolerance &&
-          result.direction_error <= options_.direction_tolerance)
-        return finish(IkFailure::None);
-      Eigen::Matrix<double, 6, 5> jac;
-      for (int j = 0; j < 5; ++j) {
-        auto plus = q, minus = q;
-        plus[j] = std::min(q[j] + 1e-6, bounds_.upper[j]);
-        minus[j] = std::max(q[j] - 1e-6, bounds_.lower[j]);
-        jac.col(j) =
-            (residual(fk_.computeTcpTransform(withCoordinates(current, plus)),
-                      target) -
-             residual(fk_.computeTcpTransform(withCoordinates(current, minus)),
-                      target)) /
-            (plus[j] - minus[j]);
+      if (accepted_solution()) return finish(IkFailure::None);
+      Eigen::MatrixXd jac(r.size(), n);
+      for (int j = 0; j < n; ++j) {
+        Eigen::VectorXd plus = q, minus = q;
+        plus[j] = std::min(q[j] + 1e-6, upper[j]);
+        minus[j] = std::max(q[j] - 1e-6, lower[j]);
+        jac.col(j) = (residual(pose(plus), target, grasp) -
+                      residual(pose(minus), target, grasp)) /
+                     (plus[j] - minus[j]);
       }
-      JointVector delta = -(jac.transpose() * jac +
-                            damping * Eigen::Matrix<double, 5, 5>::Identity())
-                               .ldlt()
-                               .solve(jac.transpose() * r);
-      const double scale =
+      Eigen::VectorXd delta =
+          -(jac.transpose() * jac +
+            damping * Eigen::MatrixXd::Identity(n, n))
+               .ldlt()
+               .solve(jac.transpose() * r);
+      double scale =
           std::max({1., std::abs(delta[0]) / .15, std::abs(delta[1]) / .1,
                     std::abs(delta[2]) / .5, std::abs(delta[3]) / .5,
                     std::abs(delta[4]) / .5});
+      if (free_base) scale = std::max(scale, std::abs(delta[5]) / .1);
       delta /= scale;
       bool accepted = false;
       for (int ls = 0; ls < 10; ++ls) {
-        auto next =
-            (q + delta).cwiseMax(bounds_.lower).cwiseMin(bounds_.upper).eval();
-        double c =
-            residual(fk_.computeTcpTransform(withCoordinates(current, next)),
-                     target)
-                .squaredNorm();
+        Eigen::VectorXd next = (q + delta).cwiseMax(lower).cwiseMin(upper);
+        double c = residual(pose(next), target, grasp).squaredNorm();
         if (c < cost - 1e-18) {
           q = next;
           accepted = true;
@@ -274,9 +318,9 @@ IkResult InverseKinematics::solve(const Eigen::Isometry3d& target,
   // no alternate branch exists. Interior exhausted searches are convergence
   // failures.
   bool bound = false;
-  for (int j = 0; j < 5; ++j)
-    bound = bound || std::abs(best[j] - bounds_.lower[j]) < 1e-7 ||
-            std::abs(best[j] - bounds_.upper[j]) < 1e-7;
+  for (int j = 0; j < n; ++j)
+    bound = bound || std::abs(best[j] - lower[j]) < 1e-7 ||
+            std::abs(best[j] - upper[j]) < 1e-7;
   return finish(bound ? IkFailure::JointLimit : IkFailure::ConvergenceFailure);
 }
 }  // namespace stretch_custom_kinematics

@@ -1,0 +1,117 @@
+/octomap_builder:
+  ros__parameters:
+    input_cloud_topic: /camera/depth/color/points
+    filtered_cloud_topic: /perception/filtered_points
+    octomap_topic: /perception/octomap_binary
+    marker_topic: /perception/octomap_markers
+    scene_status_topic: /perception/scene_status
+    # Persistent map: kept in odom so it survives base motion (Nav2).
+    map_frame: odom
+    publish_period: 0.2
+
+    # 0.02 m preserves the roughly 30 mm clearance at the deterministic desk
+    # edge; 0.04 m voxels conservatively erased that manipulation clearance.
+    resolution: 0.02
+    min_range: 0.15
+    max_sensor_range: 2.5
+    voxel_leaf_size: 0.02
+
+    occupancy_threshold: 0.50
+    prob_hit: 0.70
+    prob_miss: 0.40
+    clamping_min: 0.12
+    clamping_max: 0.97
+
+    freshness_timeout: 1.0
+    reset_map_each_cloud: false
+    publish_markers: true
+    max_marker_voxels: 30000
+
+    floor_filter:
+      enabled: false
+      min_z: -0.05
+      max_z: 0.04
+
+    self_filter:
+      enabled: true
+      # Mark only the tightly modeled robot masks as free after ray insertion.
+      # This removes the robot's own occlusion shadow without clearing a broad
+      # base-centered region that could contain a nearby obstacle.
+      clear_robot_volume: true
+      frames:
+        - base_link
+        - link_mast
+        - camera_link
+        - gripper_camera_link
+        - link_lift
+        - link_arm_l4
+        - link_arm_l0
+        - link_wrist_yaw
+        - link_wrist_pitch
+        - link_wrist_roll
+      # Six values per frame: center xyz, size xyz, in that frame.
+      # These are deliberately small link-local masks, not a broad crop around
+      # the robot, so nearby objects are preserved.
+      boxes:
+        - 0.0
+        - 0.0
+        - 0.10
+        - 0.55
+        - 0.45
+        - 0.25
+        - 0.0
+        - 0.0
+        - 0.35
+        - 0.16
+        - 0.16
+        - 0.70
+        - 0.0
+        - -0.0175
+        - 0.0
+        - 0.08
+        - 0.12
+        - 0.06
+        - -0.0078
+        - -0.009
+        - 0.0
+        - 0.07
+        - 0.08
+        - 0.08
+        # Stowed shoulder volume, including the conservative planning capsule
+        # and OctoMap discretization margin while staying inside the base footprint.
+        - -0.128
+        - 0.0
+        - 0.0
+        - 0.38
+        - 0.22
+        - 0.24
+        - 0.0
+        - 0.0
+        - 0.045
+        - 0.14
+        - 0.14
+        - 0.18
+        - 0.042
+        - -0.016
+        - 0.0
+        - 0.18
+        - 0.14
+        - 0.14
+        - 0.010
+        - 0.0
+        - 0.016
+        - 0.12
+        - 0.12
+        - 0.14
+        - 0.0
+        - 0.0
+        - 0.010
+        - 0.12
+        - 0.12
+        - 0.12
+        - 0.0
+        - 0.0
+        - 0.115
+        - 0.18
+        - 0.18
+        - 0.40

@@ -2,21 +2,52 @@
 <package format="3">
   <name>stretch_custom_manipulation</name>
   <version>0.1.0</version>
-  <description>Unified bringup for Stretch custom manipulation.</description>
+  <description>Unified bringup, shelf grasp mission and perception nodes for Stretch 3 custom manipulation.</description>
   <maintainer email="jlurquieta1@gmail.com">JLUAS</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <depend>sensor_msgs</depend>
+  <depend>action_msgs</depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
   <exec_depend>stretch_robot_interface</exec_depend>
   <exec_depend>stretch_custom_kinematics</exec_depend>
+  <exec_depend>stretch_collision_planning</exec_depend>
   <exec_depend>stretch_guarded_executor</exec_depend>
   <exec_depend>stretch_lift_rviz_control</exec_depend>
+  <exec_depend>stretch_core</exec_depend>
+  <exec_depend>stretch_nav2</exec_depend>
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>gazebo_plugins</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>rclpy</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>gazebo_msgs</exec_depend>
+  <exec_depend>interactive_markers</exec_depend>
+  <exec_depend>nav2_msgs</exec_depend>
+  <exec_depend>nav2_common</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>sensor_msgs_py</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <!-- Open3D (object_localizer) and SAM 2 (sam2_segmenter) come from pip;
+       see docs/GRASPING.md. -->
+  <exec_depend>stretch_small_house_sim</exec_depend>
   <test_depend>launch_testing</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
   <test_depend>python3-numpy</test_depend>
   <test_depend>python3-scipy</test_depend>
   <test_depend>diagnostic_msgs</test_depend>
@@ -26,5 +57,8 @@
   <test_depend>std_srvs</test_depend>
   <test_depend>visualization_msgs</test_depend>
   <test_depend>launch_testing_ament_cmake</test_depend>
-  <export><build_type>ament_cmake</build_type></export>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+  <member_of_group>rosidl_interface_packages</member_of_group>
 </package>

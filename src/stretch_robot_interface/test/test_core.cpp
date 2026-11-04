@@ -97,6 +97,16 @@ TEST(Limits, PhysicalStageMustRespectLimit) {
   s.position.back() = .215;
   EXPECT_THROW(m.decode(s), std::invalid_argument);
 }
+TEST(Limits, MeasuredEncoderNoiseAtRetractedArmIsAccepted) {
+  RobotModel m(xml());
+  auto s = sample();
+  s.position[1] = -5e-5;
+  s.position.back() = .07495;
+  EXPECT_NO_THROW(m.decode(s));
+  s.position[1] = -1e-3;
+  s.position.back() = .074;
+  EXPECT_THROW(m.decode(s), std::invalid_argument);
+}
 TEST(Freshness, ReceiptAndHeaderBothRequired) {
   EXPECT_TRUE(fresh(.01, .02, 1));
   EXPECT_FALSE(fresh(2, .02, 1));

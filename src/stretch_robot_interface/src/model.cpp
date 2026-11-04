@@ -71,10 +71,11 @@ RobotModel::RobotModel(const std::string& xml, const std::string& base,
     throw std::invalid_argument(
         "Required manipulation joint absent from TCP chain");
 }
-void RobotModel::check(const std::string& name, double value) const {
+void RobotModel::check(const std::string& name, double value,
+                       double tolerance) const {
   auto j = model_.getJoint(name);
-  if (!std::isfinite(value) || value < j->limits->lower - 1e-8 ||
-      value > j->limits->upper + 1e-8)
+  if (!std::isfinite(value) || value < j->limits->lower - tolerance ||
+      value > j->limits->upper + tolerance)
     throw std::invalid_argument("Joint outside URDF limits: " + name);
 }
 std::map<std::string, double> RobotModel::physicalJoints(
@@ -98,7 +99,10 @@ RobotState RobotModel::decode(const sensor_msgs::msg::JointState& msg) const {
   }
   auto get = [&](const std::string& n) {
     if (!p.count(n)) throw std::invalid_argument("Missing joint: " + n);
-    check(n, p.at(n));
+    // Retracted telescoping stages jitter by a few encoder counts around the
+    // calibrated zero. This tolerance applies only to measured state; command
+    // generation remains subject to the exact URDF bounds.
+    check(n, p.at(n), 1e-4);
     return p.at(n);
   };
   RobotState q;

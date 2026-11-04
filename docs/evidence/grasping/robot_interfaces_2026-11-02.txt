@@ -1,0 +1,449 @@
+== topics
+/battery [sensor_msgs/msg/BatteryState]
+/camera/accel/imu_info [realsense2_camera_msgs/msg/IMUInfo]
+/camera/accel/metadata [realsense2_camera_msgs/msg/Metadata]
+/camera/accel/sample [sensor_msgs/msg/Imu]
+/camera/accel/sample_corrected [sensor_msgs/msg/Imu]
+/camera/aligned_depth_to_color/camera_info [sensor_msgs/msg/CameraInfo]
+/camera/aligned_depth_to_color/image_raw [sensor_msgs/msg/Image]
+/camera/aligned_depth_to_color/image_raw/compressed [sensor_msgs/msg/CompressedImage]
+/camera/aligned_depth_to_color/image_raw/compressedDepth [sensor_msgs/msg/CompressedImage]
+/camera/aligned_depth_to_color/image_raw/theora [theora_image_transport/msg/Packet]
+/camera/color/camera_info [sensor_msgs/msg/CameraInfo]
+/camera/color/image_raw [sensor_msgs/msg/Image]
+/camera/color/image_raw/compressed [sensor_msgs/msg/CompressedImage]
+/camera/color/image_raw/compressedDepth [sensor_msgs/msg/CompressedImage]
+/camera/color/image_raw/theora [theora_image_transport/msg/Packet]
+/camera/color/metadata [realsense2_camera_msgs/msg/Metadata]
+/camera/depth/camera_info [sensor_msgs/msg/CameraInfo]
+/camera/depth/color/points [sensor_msgs/msg/PointCloud2]
+/camera/depth/image_rect_raw [sensor_msgs/msg/Image]
+/camera/depth/image_rect_raw/compressed [sensor_msgs/msg/CompressedImage]
+/camera/depth/image_rect_raw/compressedDepth [sensor_msgs/msg/CompressedImage]
+/camera/depth/image_rect_raw/theora [theora_image_transport/msg/Packet]
+/camera/depth/metadata [realsense2_camera_msgs/msg/Metadata]
+/camera/extrinsics/depth_to_accel [realsense2_camera_msgs/msg/Extrinsics]
+/camera/extrinsics/depth_to_color [realsense2_camera_msgs/msg/Extrinsics]
+/camera/extrinsics/depth_to_depth [realsense2_camera_msgs/msg/Extrinsics]
+/camera/extrinsics/depth_to_gyro [realsense2_camera_msgs/msg/Extrinsics]
+/camera/gyro/imu_info [realsense2_camera_msgs/msg/IMUInfo]
+/camera/gyro/metadata [realsense2_camera_msgs/msg/Metadata]
+/camera/gyro/sample [sensor_msgs/msg/Imu]
+/diagnostics [diagnostic_msgs/msg/DiagnosticArray]
+/gamepad_joy [sensor_msgs/msg/Joy]
+/imu_mobile_base [sensor_msgs/msg/Imu]
+/imu_wrist [sensor_msgs/msg/Imu]
+/is_gamepad_dongle [std_msgs/msg/Bool]
+/is_homed [std_msgs/msg/Bool]
+/is_runstopped [std_msgs/msg/Bool]
+/is_streaming_position [std_msgs/msg/Bool]
+/joint_limits [sensor_msgs/msg/JointState]
+/joint_pose_cmd [std_msgs/msg/Float64MultiArray]
+/joint_states [sensor_msgs/msg/JointState]
+/laser_filter/transition_event [lifecycle_msgs/msg/TransitionEvent]
+/magnetometer_mobile_base [sensor_msgs/msg/MagneticField]
+/mode [std_msgs/msg/String]
+/odom [nav_msgs/msg/Odometry]
+/parameter_events [rcl_interfaces/msg/ParameterEvent]
+/robot_description [std_msgs/msg/String]
+/rosout [rcl_interfaces/msg/Log]
+/scan [sensor_msgs/msg/LaserScan]
+/scan_filtered [sensor_msgs/msg/LaserScan]
+/stretch/cmd_vel [geometry_msgs/msg/Twist]
+/stretch/joint_states [sensor_msgs/msg/JointState]
+/stretch_gamepad_state [sensor_msgs/msg/Joy]
+/tf [tf2_msgs/msg/TFMessage]
+/tf_static [tf2_msgs/msg/TFMessage]
+/tool [std_msgs/msg/String]
+== info /camera/color/image_raw
+Type: sensor_msgs/msg/Image
+Publisher count: 1
+Node name: camera
+Node namespace: /
+  Reliability: RELIABLE
+  Durability: TRANSIENT_LOCAL
+Subscription count: 0
+== hz /camera/color/image_raw
+average rate: 15.000
+average rate: 14.988
+== info /camera/aligned_depth_to_color/image_raw
+Type: sensor_msgs/msg/Image
+Publisher count: 1
+Node name: camera
+Node namespace: /
+  Reliability: RELIABLE
+  Durability: TRANSIENT_LOCAL
+Subscription count: 0
+== hz /camera/aligned_depth_to_color/image_raw
+average rate: 14.991
+average rate: 14.990
+== info /camera/depth/color/points
+Type: sensor_msgs/msg/PointCloud2
+Publisher count: 1
+Node name: camera
+Node namespace: /
+  Reliability: RELIABLE
+  Durability: VOLATILE
+Subscription count: 0
+== hz /camera/depth/color/points
+average rate: 10.737
+average rate: 11.671
+== info /scan
+Type: sensor_msgs/msg/LaserScan
+Publisher count: 1
+Node name: sllidar_node
+Node namespace: /
+  Reliability: RELIABLE
+  Durability: VOLATILE
+Subscription count: 1
+Node name: laser_filter
+Node namespace: /
+  Reliability: BEST_EFFORT
+  Durability: VOLATILE
+== hz /scan
+average rate: 7.879
+average rate: 7.911
+== info /odom
+Type: nav_msgs/msg/Odometry
+Publisher count: 1
+Node name: stretch_driver
+Node namespace: /
+  Reliability: RELIABLE
+  Durability: VOLATILE
+Subscription count: 0
+== hz /odom
+average rate: 30.027
+average rate: 30.006
+== info /stretch/joint_states
+Type: sensor_msgs/msg/JointState
+Publisher count: 1
+Node name: stretch_driver
+Node namespace: /
+  Reliability: RELIABLE
+  Durability: VOLATILE
+Subscription count: 1
+Node name: joint_state_publisher
+Node namespace: /
+  Reliability: RELIABLE
+  Durability: VOLATILE
+== hz /stretch/joint_states
+average rate: 29.992
+average rate: 29.990
+== header /camera/color/image_raw
+header:
+  stamp:
+    sec: 1793654458
+    nanosec: 52776611
+  frame_id: camera_color_optical_frame
+height: 240
+width: 424
+encoding: rgb8
+is_bigendian: 0
+step: 1272
+== header /camera/aligned_depth_to_color/image_raw
+header:
+  stamp:
+    sec: 1793654462
+    nanosec: 857766846
+  frame_id: camera_color_optical_frame
+height: 240
+width: 424
+encoding: 16UC1
+is_bigendian: 0
+step: 848
+== header /camera/depth/color/points
+header:
+  stamp:
+    sec: 1793654485
+    nanosec: 603826904
+  frame_id: camera_depth_optical_frame
+height: 1
+width: 38119
+fields: '<sequence type: sensor_msgs/msg/PointField, length: 4>'
+is_bigendian: false
+point_step: 20
+row_step: 762380
+is_dense: true
+== once /camera/color/camera_info
+header:
+  stamp:
+    sec: 1793654486
+    nanosec: 806229736
+  frame_id: camera_color_optical_frame
+height: 240
+width: 424
+distortion_model: plumb_bob
+d:
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+k:
+- 303.06060791015625
+- 0.0
+- 212.0560760498047
+- 0.0
+- 303.0722351074219
+- 122.78679656982422
+- 0.0
+- 0.0
+- 1.0
+r:
+- 1.0
+- 0.0
+- 0.0
+- 0.0
+- 1.0
+- 0.0
+- 0.0
+- 0.0
+- 1.0
+p:
+- 303.06060791015625
+- 0.0
+- 212.0560760498047
+- 0.0
+- 0.0
+- 303.0722351074219
+- 122.78679656982422
+- 0.0
+- 0.0
+- 0.0
+- 1.0
+- 0.0
+binning_x: 0
+binning_y: 0
+roi:
+  x_offset: 0
+  y_offset: 0
+  height: 0
+  width: 0
+  do_rectify: false
+---
+== once /camera/aligned_depth_to_color/camera_info
+header:
+  stamp:
+    sec: 1793654488
+    nanosec: 6603516
+  frame_id: camera_color_optical_frame
+height: 240
+width: 424
+distortion_model: plumb_bob
+d:
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+k:
+- 303.06060791015625
+- 0.0
+- 212.0560760498047
+- 0.0
+- 303.0722351074219
+- 122.78679656982422
+- 0.0
+- 0.0
+- 1.0
+r:
+- 1.0
+- 0.0
+- 0.0
+- 0.0
+- 1.0
+- 0.0
+- 0.0
+- 0.0
+- 1.0
+p:
+- 303.06060791015625
+- 0.0
+- 212.0560760498047
+- 0.0
+- 0.0
+- 303.0722351074219
+- 122.78679656982422
+- 0.0
+- 0.0
+- 0.0
+- 1.0
+- 0.0
+binning_x: 0
+binning_y: 0
+roi:
+  x_offset: 0
+  y_offset: 0
+  height: 0
+  width: 0
+  do_rectify: false
+---
+== once /odom
+header:
+  stamp:
+    sec: 1793654489
+    nanosec: 233494254
+  frame_id: odom
+child_frame_id: base_link
+pose:
+  pose:
+    position:
+      x: -1.1638551992718618e-06
+      y: 7.235243432157645e-09
+      z: 0.0
+    orientation:
+      x: 0.0
+      y: 0.0
+      z: 3.3105338786206475e-05
+      w: 0.9999999994520182
+  covariance:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+twist:
+  twist:
+    linear:
+      x: -0.00010443372811840763
+      y: 0.0
+      z: 0.0
+== once /stretch/joint_states
+header:
+  stamp:
+    sec: 1793654490
+    nanosec: 400011024
+  frame_id: ''
+name:
+- wrist_extension
+- joint_lift
+- joint_arm_l3
+- joint_arm_l2
+- joint_arm_l1
+- joint_arm_l0
+- joint_head_pan
+- joint_head_tilt
+- joint_wrist_yaw
+- joint_wrist_pitch
+- joint_wrist_roll
+- joint_gripper_finger_left
+- joint_gripper_finger_right
+position:
+- 0.008036350675438422
+- 0.04348166727521817
+- 0.0020090876688596054
+- 0.0020090876688596054
+- 0.0020090876688596054
+- 0.0020090876688596054
+- 0.06348355175668546
+- 0.03335570843680639
+- 3.009798137563952
+- -0.9940195505498954
+- -0.1564660403643354
+- 0.00040293660195506544
+- 0.00040293660195506544
+velocity:
+- -5.425824312435648e-05
+- -4.333956910266527e-05
+- -1.356456078108912e-05
+- -1.356456078108912e-05
+- -1.356456078108912e-05
+- -1.356456078108912e-05
+- -0.0
+- -0.0
+- -0.0
+- -0.0
+- 0.0
+- 0.0
+- 0.0
+effort:
+- 0.0
+- 27.272551293466602
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- -4.8828125
+- 0.0
+- -0.1465559355153884
+- 0.0
+- 0.0
+== tf
+[INFO] [1793654490.770313432] [tf2_echo]: Waiting for transform base_link ->  camera_color_optical_frame: Invalid frame ID "base_link" passed to canTransform argument target_frame - frame does not exist
+At time 1793654491.736756216
+- Translation: [0.020, -0.022, 1.315]
+- Rotation: in Quaternion [0.029, 0.701, -0.007, 0.712]
+- Rotation: in RPY (radian) [1.124, 1.536, 1.074]
+- Rotation: in RPY (degree) [64.413, 88.010, 61.544]
+- Matrix:
+  0.017  0.050  0.999  0.020
+  0.031  0.998 -0.050 -0.022
+ -0.999  0.031  0.015  1.315
+[INFO] [1793654493.023384553] [tf2_echo]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1793654495.003079406] [tf2_echo]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1793654497.003103459] [tf2_echo]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1793654498.003109734] [tf2_echo]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1793654498.805306140] [rclcpp]: signal_handler(signum=15)
+== actions
+/stretch_controller/follow_joint_trajectory [control_msgs/action/FollowJointTrajectory]
+== services
+/activate_streaming_position [std_srvs/srv/Trigger]
+/camera/device_info [realsense2_camera_msgs/srv/DeviceInfo]
+/deactivate_streaming_position [std_srvs/srv/Trigger]
+/get_joint_states [std_srvs/srv/Trigger]
+/home_the_robot [std_srvs/srv/Trigger]
+/laser_filter/change_state [lifecycle_msgs/srv/ChangeState]
+/laser_filter/get_available_states [lifecycle_msgs/srv/GetAvailableStates]
+/laser_filter/get_available_transitions [lifecycle_msgs/srv/GetAvailableTransitions]
+/laser_filter/get_state [lifecycle_msgs/srv/GetState]
+/laser_filter/get_transition_graph [lifecycle_msgs/srv/GetAvailableTransitions]
+/runstop [std_srvs/srv/SetBool]
+/self_collision_avoidance [std_srvs/srv/SetBool]
+/start_motor [std_srvs/srv/Empty]
+/stop_motor [std_srvs/srv/Empty]
+/stop_the_robot [std_srvs/srv/Trigger]
+/stow_the_robot [std_srvs/srv/Trigger]
+/switch_to_gamepad_mode [std_srvs/srv/Trigger]
+/switch_to_navigation_mode [std_srvs/srv/Trigger]
+/switch_to_position_mode [std_srvs/srv/Trigger]
+/switch_to_trajectory_mode [std_srvs/srv/Trigger]
+== camera params
+Node not found
+Node not found
+Node not found
+Node not found
+== driver params
+Boolean value is: True
+Boolean value is: False

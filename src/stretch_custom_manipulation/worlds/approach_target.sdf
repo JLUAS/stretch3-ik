@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <model name="approach_target">
+    <!-- Kinematic keeps the target gravity-free while allowing Gazebo's
+         translate tool to change its pose and publish that change. -->
+    <static>false</static>
+    <link name="body">
+      <gravity>false</gravity>
+      <kinematic>true</kinematic>
+      <inertial>
+        <mass>1.0</mass>
+        <inertia>
+          <ixx>0.006458</ixx><iyy>0.006458</iyy><izz>0.005</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry><cylinder><radius>0.10</radius><length>0.25</length></cylinder></geometry>
+      </collision>
+      <visual name="visual">
+        <!-- Reserved GUI-only bit; the robot RGB-D camera masks it out. -->
+        <visibility_flags>2147483648</visibility_flags>
+        <geometry><cylinder><radius>0.10</radius><length>0.25</length></cylinder></geometry>
+        <material>
+          <ambient>1 0.12 0.02 1</ambient>
+          <diffuse>1 0.12 0.02 1</diffuse>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

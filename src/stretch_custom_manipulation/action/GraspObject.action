@@ -1,0 +1,32 @@
+# One grasp mission: from the current object observation to a verified pickup.
+# A future navigation orchestrator sends this after Nav2 reports arrival and
+# the base is stationary.
+
+# Caller-chosen ID; a goal whose ID matches a finished mission returns that
+# mission's result without moving. Empty: the server assigns one.
+string mission_id
+# object_id of the observation to grasp; empty: the latest valid observation.
+string target_id
+---
+string mission_id
+# True only when the pickup was verified (fingers stopped on the object after
+# the lift and after the retreat). Never true in dry run.
+bool success
+# Machine-readable: NONE, BUSY, NOT_READY, DUPLICATE_ACTIVE, TARGET_UNKNOWN,
+# STALE_OBSERVATION, PERCEPTION_INVALID, NO_FEASIBLE_GRASP, IK_FAILED,
+# IK_TIMEOUT, GRASP_GEOMETRY, BASE_CORRECTION_FAILED, COLLISION,
+# CONTROLLER_REJECTED, MOTION_ABORTED, TIMEOUT, ARM_NOT_SETTLED, MODE_SWITCH,
+# LOST_TARGET, TARGET_MOVED, GRIPPER_FAILED, GRIPPER_NOT_CLOSED,
+# PICKUP_UNVERIFIED, OBJECT_SLIPPED, CANCELED, STOP_UNCONFIRMED, DRY_RUN,
+# INTERNAL_ERROR
+string error_code
+string failed_stage
+string message
+# Aperture where the fingers stopped at the last verification (m).
+float64 held_aperture
+float64 duration
+---
+string mission_id
+string stage
+string detail
+float64 elapsed

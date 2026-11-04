@@ -1,6 +1,7 @@
 #pragma once
 #include <optional>
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <vector>
 
 #include "stretch_custom_kinematics/inverse_kinematics.hpp"
 namespace stretch_guarded_executor {
@@ -38,6 +39,8 @@ struct Input {
   bool action_server_available = false, status_message_received = false,
        active_goal_present = false;
   bool startpoint_guard_verified = false;
+  // Arm motion is refused while the mobile base moves (Nav2 or teleop).
+  bool base_still = true;
 };
 struct Candidate {
   Vector q = Vector::Zero(), seed = Vector::Zero();
@@ -52,6 +55,12 @@ struct Plan {
   uint64_t revision = 0;
   Vector candidate_q = Vector::Zero(), candidate_seed = Vector::Zero();
   std::optional<double> relative_lift;
+  // Optional executable 5-DoF trajectory samples.  When populated, these are
+  // the logical manipulation coordinates that will be converted to the
+  // physical Stretch joint trajectory.  times_from_start must have the same
+  // size, start at zero, and be strictly increasing.
+  std::vector<Vector> trajectory;
+  std::vector<double> times_from_start;
 };
 struct Check {
   bool ok = false;
@@ -64,6 +73,10 @@ class Guard {
   void disarm();
   Check validate(const Input& input, const Candidate& candidate,
                  double duration, double now);
+  Check validateTrajectory(const Input& input, const Candidate& candidate,
+                           const std::vector<Vector>& trajectory,
+                           const std::vector<double>& times_from_start,
+                           double now);
   Check begin(const Input& input, const Candidate& candidate, double now);
   Check preflight(const Input& input) const { return prerequisites(input); }
   Check monitorPrerequisites(const Input& input);
@@ -87,6 +100,10 @@ class Guard {
   Check prerequisites(const Input& input) const;
   Check target(const Input& input, const Candidate& c, double duration,
                double now) const;
+  Check trajectoryTarget(const Input& input, const Candidate& c,
+                         const std::vector<Vector>& trajectory,
+                         const std::vector<double>& times_from_start,
+                         double now) const;
   Config config_;
   Bounds bounds_;
   State state_ = State::DISARMED;

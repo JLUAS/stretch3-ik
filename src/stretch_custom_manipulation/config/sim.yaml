@@ -1,6 +1,7 @@
 # Simulation / offline fixture parameters.
 /guarded_executor/executor:
   ros__parameters:
+    collision_environment: primitive
     lift_only: false
     dry_run: false
     execution_enabled: true
@@ -12,16 +13,85 @@
     use_sim_time: false
     joint_state_topic: /ik_input/joint_states
     state_timeout: 0.5
-    future_stamp_tolerance: 0.05
+    # Gazebo publishes joint state just ahead of the next /clock sample (~90 ms).
+    future_stamp_tolerance: 0.15
     base_frame: base_link
     tcp_frame: link_grasp_center
     trajectory_action: /stretch_controller/follow_joint_trajectory
     trajectory_duration: 3.0
+    # A near-upper-bound lift move needs about 58 s with the conservative
+    # simulation acceleration below.  The real profile remains unchanged.
+    max_duration: 60.0
+    collision_planning:
+      enabled: true
+      octomap_topic: /perception/octomap_binary
+      map_frame: base_link
+      scene_freshness_timeout: 1.0
+      # Gazebo's sparse 320x240 depth rays leave unobserved cells between
+      # samples even after the head is aligned. Occupied voxels remain hard
+      # collisions; the real profile keeps unknown space fail-closed.
+      unknown_is_collision: false
+      timeout: 3.0
+      max_iterations: 4000
+      step_size: 0.12
+      edge_resolution: 0.01
+      goal_bias: 0.10
+      random_seed: 29
+      shortcut_enabled: true
+      shortcut_attempts: 200
+      visualize_path: true
     lift_test_delta: 0.01
-    max_delta: [0.027, 0.027, 0.147, 0.147, 0.147]
-    max_velocity: [0.02, 0.02, 0.1, 0.1, 0.1]
-    max_acceleration: [0.02, 0.02, 0.1, 0.1, 0.1]
+    max_delta: [0.03, 0.027, 0.147, 0.147, 0.147]
+    # Conservative fractions of the Gazebo controller limits.  The former
+    # 0.1 rad/s² cap made a collision-free wrist detour exceed 80 seconds.
+    # Keep lift speed at 80% and acceleration at 90% of Gazebo's 0.05 limits.
+    # The former 0.02 caps made a valid stow-to-upper-lift trajectory exceed
+    # the guard's simulation budget even though IK and position limits passed.
+    max_velocity: [0.04, 0.02, 0.3, 0.4, 0.4]
+    max_acceleration: [0.045, 0.02, 0.5, 1.0, 1.0]
     tracking_error: [0.01, 0.01, 0.05, 0.05, 0.05]
     goal_tolerance: [0.0025, 0.0025, 0.015, 0.015, 0.015]
     start_drift: [0.001, 0.001, 0.005, 0.005, 0.005]
     dry_run_report_path: /tmp/stretch_guarded_executor_report.json
+
+# Simulated gripper parameters.
+/sim_gripper:
+  ros__parameters:
+    gripper_action: /stretch_gripper_controller/gripper_action
+    # Stretch gripper aperture range in meters.
+    max_aperture: 0.13
+    min_aperture: 0.0
+    # Simulated motion duration in seconds.
+    motion_duration: 1.0
+    # Raw driver value range [-100, 200].
+    raw_min: -100.0
+    raw_max: 200.0
+    # Simulated contact detection: if closing and position stops above
+    # this fraction of target, report object_detected=true.
+    contact_threshold_fraction: 0.3
+    publish_rate: 30.0
+
+# Pick state machine parameters.
+/pick_state_machine:
+  ros__parameters:
+    base_frame: base_link
+    pregrasp_offset: 0.08
+    retract_height: 0.10
+    gripper_open_aperture: 0.10
+    gripper_close_aperture: 0.0
+    grasp_verify_threshold: -0.1
+    state_timeout: 30.0
+    ik_timeout: 10.0
+    execution_timeout: 90.0
+    gripper_action: /stretch_gripper_controller/gripper_action
+
+# Place state machine parameters.
+/place_state_machine:
+  ros__parameters:
+    base_frame: base_link
+    retract_height: 0.10
+    gripper_open_aperture: 0.10
+    state_timeout: 30.0
+    ik_timeout: 10.0
+    execution_timeout: 90.0
+    gripper_action: /stretch_gripper_controller/gripper_action

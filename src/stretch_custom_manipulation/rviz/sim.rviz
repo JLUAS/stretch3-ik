@@ -1,0 +1,130 @@
+Panels:
+- Class: rviz_common/Displays
+  Name: Displays
+- Class: rviz_common/Views
+  Name: Views
+Visualization Manager:
+  Displays:
+  - Cell Size: 0.5
+    Class: rviz_default_plugins/Grid
+    Enabled: true
+    Name: Ground Grid
+    Plane Cell Count: 20
+    Reference Frame: odom
+  - Class: rviz_default_plugins/TF
+    Enabled: true
+    Frame Timeout: 15
+    Marker Scale: 0.5
+    Name: TF
+    Show Names: false
+  - Alpha: 0.7
+    Class: rviz_default_plugins/Map
+    Color Scheme: map
+    Draw Behind: false
+    Enabled: true
+    Name: SLAM Map
+    QoS Durability Policy: Transient Local
+    QoS History Policy: Keep Last
+    QoS Reliability Policy: Reliable
+    Topic: /map
+  - Alpha: 0.35
+    Class: rviz_default_plugins/Map
+    Color Scheme: costmap
+    Enabled: true
+    Name: Global Costmap
+    QoS Durability Policy: Volatile
+    QoS History Policy: Keep Last
+    QoS Reliability Policy: Reliable
+    Topic: /global_costmap/costmap
+  - Alpha: 0.45
+    Class: rviz_default_plugins/Map
+    Color Scheme: costmap
+    Enabled: true
+    Name: Local Costmap
+    QoS Durability Policy: Volatile
+    QoS History Policy: Keep Last
+    QoS Reliability Policy: Reliable
+    Topic: /local_costmap/costmap
+  - Class: rviz_default_plugins/LaserScan
+    Enabled: true
+    History Policy: Keep Last
+    Name: LiDAR
+    Queue Size: 10
+    Reliability Policy: Best Effort
+    Size (m): 0.03
+    Style: Points
+    Topic: /scan
+  - Class: rviz_default_plugins/PointCloud2
+    Color Transformer: RGB8
+    Enabled: true
+    History Policy: Keep Last
+    Name: D435i Depth Cloud
+    Queue Size: 5
+    Reliability Policy: Best Effort
+    Size (Pixels): 2
+    Style: Points
+    Topic: /camera/depth/color/points
+  - Class: rviz_default_plugins/Path
+    Color: 25; 255; 0
+    Enabled: true
+    Line Style: Lines
+    Line Width: 0.03
+    Name: Global Plan
+    Topic: /plan
+  - Class: rviz_default_plugins/Path
+    Color: 255; 170; 0
+    Enabled: true
+    Line Style: Lines
+    Line Width: 0.04
+    Name: Local Plan
+    Topic: /local_plan
+  - Class: moveit_rviz_plugin/MotionPlanning
+    Enabled: true
+    Name: MotionPlanning
+    Planned Path:
+      Loop Animation: true
+      Trajectory Topic: /display_planned_path
+    Planning Group: arm
+    Planning Request:
+      Interactive Marker Size: 0.15
+      Query Goal State: true
+      Query Start State: false
+    Planning Scene Topic: /monitored_planning_scene
+    Robot Description: robot_description
+  - Alpha: 0.5
+    Class: rviz_default_plugins/RobotModel
+    Description Source: Topic
+    Description Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /ik_preview/robot_description
+    Enabled: true
+    Name: Ghost Robot
+    TF Prefix: ik_preview
+    Update Interval: 0
+    Value: true
+    Visual Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: odom
+  Tools:
+  - Class: rviz_default_plugins/Interact
+  - Class: rviz_default_plugins/MoveCamera
+  - Class: rviz_default_plugins/Select
+  - Class: rviz_default_plugins/SetInitialPose
+  - Class: rviz_default_plugins/SetGoal
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 4.0
+      Focal Point:
+        X: 0.0
+        Y: 0.0
+        Z: 0.5
+      Pitch: 0.65
+      Yaw: 0.8
+Window Geometry:
+  Height: 1000
+  Width: 1700

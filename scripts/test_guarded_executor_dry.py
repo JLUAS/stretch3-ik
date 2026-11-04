@@ -98,7 +98,10 @@ if not args.live:
                                     values=[KeyValue(key='success', value='true'),
                                             KeyValue(key='seed_topic', value='/stretch/joint_states'),
                                             KeyValue(key='last_valid_joint_solution', value=f'{j.position[0]} .2 0 0 0'),
-                                            KeyValue(key='seed_joint_state', value='.5 .2 0 0 0')])]
+                                            KeyValue(key='seed_joint_state', value='.5 .2 0 0 0'),
+                                            KeyValue(key='target_frame', value='ik_preview/base_link'),
+                                            KeyValue(key='target_z', value='1.0'),
+                                            KeyValue(key='transformed_z', value='1.0')])]
         ps.publish(d)
     node.create_timer(.04, publish_fixture)
 

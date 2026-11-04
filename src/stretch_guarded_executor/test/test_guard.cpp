@@ -5,6 +5,7 @@
 #include "stretch_guarded_executor/controller_state.hpp"
 #include "stretch_guarded_executor/diagnostic_policy.hpp"
 #include "stretch_guarded_executor/guard.hpp"
+#include "stretch_guarded_executor/planned_trajectory.hpp"
 using namespace stretch_guarded_executor;
 class GuardTest : public ::testing::Test {
  protected:
@@ -407,27 +408,186 @@ TEST_F(GuardTest, ContinuousReference) {
     ASSERT_TRUE(g.monitor(in, 10 + k * .1).ok);
   }
 }
+TEST_F(GuardTest, BuildTimedTrajectoryDensifiesAndHonorsLimits) {
+  c.lift_only = false;
+  TimedTrajectoryOptions options;
+  options.bounds = b;
+  options.max_delta = c.max_delta;
+  options.max_velocity = c.max_velocity;
+  options.max_acceleration = c.max_acceleration;
+  options.min_duration = c.min_duration;
+  options.max_duration = c.max_duration;
+  options.nominal_duration = 3.0;
+  std::vector<Vector> path = {in.q, in.q};
+  path.back()[0] += 0.02;
+  path.back()[1] += 0.04;
+  auto result = buildTimedTrajectory(path, options);
+  ASSERT_TRUE(result.success) << result.message;
+  ASSERT_GE(result.trajectory.states.size(), 3u);
+  EXPECT_TRUE(result.trajectory.states.front().isApprox(path.front()));
+  EXPECT_TRUE(result.trajectory.states.back().isApprox(path.back()));
+  EXPECT_DOUBLE_EQ(result.trajectory.times_from_start.front(), 0.0);
+  EXPECT_GE(result.trajectory.times_from_start.back(), c.min_duration);
+  EXPECT_LE(result.trajectory.times_from_start.back(), c.max_duration);
+  for (size_t i = 1; i < result.trajectory.states.size(); ++i) {
+    EXPECT_GT(result.trajectory.times_from_start[i],
+              result.trajectory.times_from_start[i - 1]);
+    const Vector delta =
+        (result.trajectory.states[i] - result.trajectory.states[i - 1])
+            .cwiseAbs();
+    EXPECT_TRUE((delta.array() <= c.max_delta.array() + 1e-12).all());
+  }
+}
+TEST_F(GuardTest, SimulationLiftCanReachNearUpperBoundWithoutClamping) {
+  c.max_delta[0] = .03;
+  c.max_velocity[0] = .04;
+  c.max_acceleration[0] = .045;
+  c.max_duration = 60.;
+  EXPECT_NO_THROW(c.validate());
+  TimedTrajectoryOptions options;
+  options.bounds = b;
+  options.max_delta = c.max_delta;
+  options.max_velocity = c.max_velocity;
+  options.max_acceleration = c.max_acceleration;
+  options.min_duration = c.min_duration;
+  options.max_duration = c.max_duration;
+  options.nominal_duration = 3.;
+  Vector start = in.q;
+  start[0] = .22;
+  for (double requested : {.30, .60, .90, b.upper[0] - .001}) {
+    Vector reachable_goal = start;
+    reachable_goal[0] = requested;
+    auto reachable = buildTimedTrajectory({start, reachable_goal}, options);
+    ASSERT_TRUE(reachable.success)
+        << "requested lift " << requested << ": " << reachable.message;
+    EXPECT_DOUBLE_EQ(reachable.trajectory.states.back()[0], requested);
+    EXPECT_LE(reachable.trajectory.times_from_start.back(), 60.);
+  }
+
+  Vector unreachable = start;
+  unreachable[0] = b.upper[0] + .001;
+  auto rejected = buildTimedTrajectory({start, unreachable}, options);
+  EXPECT_FALSE(rejected.success);
+  EXPECT_NE(rejected.message.find("outside bounds"), std::string::npos);
+}
+TEST_F(GuardTest, FastRealProfileAllowedUpToHardCaps) {
+  c.max_delta = (Vector() << .3, .3, 1.5, 1.5, 1.5).finished();
+  c.max_velocity = (Vector() << .1, .1, .6, .6, .6).finished();
+  c.max_acceleration = (Vector() << .15, .15, 1.5, 1.5, 1.5).finished();
+  c.min_duration = .5;
+  EXPECT_NO_THROW(c.validate());
+  c.max_velocity[0] = .121;
+  EXPECT_THROW(c.validate(), std::invalid_argument);
+  c.max_velocity[0] = .1;
+  c.max_acceleration[3] = 2.01;
+  EXPECT_THROW(c.validate(), std::invalid_argument);
+}
+TEST_F(GuardTest, TimedFiveAxisTrajectoryCanBeApprovedAndMonitored) {
+  c.lift_only = false;
+  auto g = armed();
+  candidate.q = in.q;
+  candidate.q[0] += 0.02;
+  candidate.q[1] += 0.035;
+  candidate.q[2] += 0.05;
+  candidate.q[3] += 0.04;
+  candidate.q[4] += 0.03;
+  std::vector<Vector> states = {in.q, (in.q + candidate.q) * 0.5,
+                                candidate.q};
+  std::vector<double> times = {0.0, 3.0, 6.0};
+  ASSERT_TRUE(g.validateTrajectory(in, candidate, states, times, 10).ok);
+  ASSERT_EQ(g.state(), State::READY);
+  ASSERT_TRUE(g.begin(in, candidate, 10).ok);
+  ASSERT_EQ(g.state(), State::EXECUTING);
+  const auto trajectory = Guard::trajectory(*g.plan(), false);
+  EXPECT_EQ(trajectory.joint_names,
+            std::vector<std::string>(
+                {"joint_lift", "joint_arm_l3", "joint_arm_l2",
+                 "joint_arm_l1", "joint_arm_l0", "joint_wrist_yaw",
+                 "joint_wrist_pitch", "joint_wrist_roll"}));
+  ASSERT_EQ(trajectory.points.size(), states.size());
+  EXPECT_TRUE(Guard::reference(*g.plan(), 0).isApprox(states.front()));
+  EXPECT_TRUE(Guard::reference(*g.plan(), 3).isApprox(states[1]));
+  EXPECT_TRUE(Guard::reference(*g.plan(), 6).isApprox(states.back()));
+  in.q = Guard::reference(*g.plan(), 12 - g.plan()->started_at);
+  EXPECT_TRUE(g.monitor(in, 12).ok);
+  in.q = candidate.q;
+  EXPECT_TRUE(g.finish(in, true, 16).ok);
+}
+TEST_F(GuardTest, FastProfileIsOneSmoothTrajectory) {
+  c.lift_only = false;
+  c.max_delta = (Vector() << .3, .3, 1.5, 1.5, 1.5).finished();
+  c.max_velocity = (Vector() << .1, .1, .6, .6, .6).finished();
+  c.max_acceleration = (Vector() << .15, .15, 1.5, 1.5, 1.5).finished();
+  c.min_duration = .5;
+  TimedTrajectoryOptions options;
+  options.bounds = b;
+  options.max_delta = c.max_delta;
+  options.max_velocity = c.max_velocity;
+  options.max_acceleration = c.max_acceleration;
+  options.min_duration = c.min_duration;
+  options.max_duration = c.max_duration;
+  options.nominal_duration = .5;
+  candidate.q = in.q;
+  candidate.q[1] += .3;
+  auto timed = buildTimedTrajectory({in.q, candidate.q}, options);
+  ASSERT_TRUE(timed.success) << timed.message;
+  // Velocity-limited quintic: 1.875 * 0.3 / 0.1 = 5.625 s, not 10 x 3 s.
+  EXPECT_NEAR(timed.trajectory.times_from_start.back(), 5.625, 1e-9);
+  auto g = armed();
+  auto check = g.validateTrajectory(in, candidate, timed.trajectory.states,
+                                    timed.trajectory.times_from_start, 10);
+  ASSERT_TRUE(check.ok) << check.reason;
+  ASSERT_TRUE(g.begin(in, candidate, 10).ok);
+  const auto message = Guard::trajectory(*g.plan(), false);
+  const auto& middle = message.points[message.points.size() / 2];
+  EXPECT_GT(middle.velocities[1], .015);  // arm stage = logical / 4
+  EXPECT_EQ(message.points.back().velocities[1], 0.);
+}
+TEST_F(GuardTest, TimedTrajectoryRejectsWrongEndpoint) {
+  c.lift_only = false;
+  auto g = armed();
+  candidate.q = in.q;
+  candidate.q[0] += 0.01;
+  std::vector<Vector> states = {in.q, candidate.q};
+  states.back()[1] += 0.01;
+  std::vector<double> times = {0.0, 3.0};
+  EXPECT_FALSE(g.validateTrajectory(in, candidate, states, times, 10).ok);
+}
 TEST_F(GuardTest, ConfigCannotWidenEnvelope) {
+  const Vector delta_cap = (Vector() << .3, .3, 1.5, 1.5, 1.5).finished();
   for (int i = 0; i < 5; i++) {
     auto bad = c;
-    bad.max_delta[i] += .0001;
+    bad.max_delta[i] = delta_cap[i] + .0001;
     EXPECT_THROW(bad.validate(), std::invalid_argument);
   }
   auto bad = c;
-  bad.max_velocity[0] = .021;
+  bad.max_velocity[0] = .121;
   EXPECT_THROW(bad.validate(), std::invalid_argument);
   bad = c;
-  bad.min_duration = 2;
+  bad.min_duration = .2;
   EXPECT_THROW(bad.validate(), std::invalid_argument);
+  bad = c;
+  bad.max_duration = 61;
+  EXPECT_THROW(bad.validate(), std::invalid_argument);
+  bad = c;
+  bad.max_duration = 30;
+  EXPECT_NO_THROW(bad.validate());
   bad = c;
   bad.tracking_error[0] = std::numeric_limits<double>::quiet_NaN();
   EXPECT_THROW(bad.validate(), std::invalid_argument);
   bad = c;
-  bad.tracking_error[0] = .0101;
+  bad.tracking_error[0] = .0301;
   EXPECT_THROW(bad.validate(), std::invalid_argument);
   bad = c;
-  bad.goal_tolerance[2] = .0201;
+  bad.goal_tolerance[2] = .0351;
   EXPECT_THROW(bad.validate(), std::invalid_argument);
+}
+TEST_F(GuardTest, IsolatedSimulationUsesGazeboAngularLimits) {
+  c.max_velocity = (Vector() << .02, .02, .3, .4, .4).finished();
+  c.max_acceleration = (Vector() << .02, .02, .5, 1., 1.).finished();
+  EXPECT_NO_THROW(c.validate());
+  c.max_velocity[2] = .801;
+  EXPECT_THROW(c.validate(), std::invalid_argument);
 }
 TEST_F(GuardTest, InvalidBounds) {
   b.upper[0] = b.lower[0];

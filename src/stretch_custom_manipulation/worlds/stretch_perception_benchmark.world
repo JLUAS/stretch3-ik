@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="stretch_perception_benchmark">
+    <physics name="default_physics" type="ode">
+      <max_step_size>0.005</max_step_size>
+      <real_time_update_rate>200</real_time_update_rate>
+    </physics>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 4 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.4 0.2 -0.9</direction>
+    </light>
+
+    <model name="stretch3_static_proxy">
+      <static>true</static>
+      <pose>0 0 0 0 0 0</pose>
+      <link name="base_and_mast">
+        <visual name="base_visual">
+          <visibility_flags>2</visibility_flags>
+          <pose>0 0 0.09 0 0 0</pose>
+          <geometry><box><size>0.42 0.34 0.18</size></box></geometry>
+          <material>
+            <ambient>0.15 0.17 0.19 1</ambient>
+            <diffuse>0.15 0.17 0.19 1</diffuse>
+          </material>
+        </visual>
+        <collision name="base_collision">
+          <pose>0 0 0.09 0 0 0</pose>
+          <geometry><box><size>0.42 0.34 0.18</size></box></geometry>
+        </collision>
+        <collision name="mast_collision">
+          <pose>-0.12 0 0.70 0 0 0</pose>
+          <geometry><box><size>0.08 0.08 1.15</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="stretch_perception_depth_camera">
+      <static>false</static>
+      <pose>0.35 0.25 1.25 0 0 0</pose>
+      <link name="gazebo_camera_mount">
+        <inertial><mass>1</mass><inertia><ixx>0.01</ixx><iyy>0.01</iyy><izz>0.01</izz></inertia></inertial>
+      </link>
+      <link name="gazebo_camera_pan_frame">
+        <inertial><mass>0.1</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
+      </link>
+      <link name="gazebo_camera_sensor_frame">
+        <inertial><mass>0.1</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
+        <sensor type="depth" name="camera">
+          <always_on>true</always_on>
+          <update_rate>15</update_rate>
+          <visualize>false</visualize>
+          <camera>
+            <visibility_mask>1</visibility_mask>
+            <horizontal_fov>1.2112585</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>480</height>
+              <format>R8G8B8</format>
+            </image>
+            <depth_camera>
+            </depth_camera>
+            <clip>
+              <near>0.05</near>
+              <far>3.0</far>
+            </clip>
+            <noise>
+              <type>gaussian</type>
+              <mean>0.0</mean>
+              <stddev>0.002</stddev>
+            </noise>
+          </camera>
+          <plugin name="stretch_head_depth_camera_controller" filename="libgazebo_ros_camera.so">
+            <ros>
+              <remapping>camera/image_raw:=camera/color/image_raw</remapping>
+              <remapping>camera/camera_info:=camera/color/camera_info</remapping>
+              <remapping>camera/depth/image_raw:=camera/depth/image_raw</remapping>
+              <remapping>camera/depth/camera_info:=camera/depth/camera_info</remapping>
+              <remapping>camera/points:=camera/depth/color/points</remapping>
+            </ros>
+            <camera_name>camera</camera_name>
+            <frame_name>gazebo_camera_depth_optical_frame</frame_name>
+            <min_depth>0.05</min_depth>
+            <max_depth>3.0</max_depth>
+          </plugin>
+        </sensor>
+      </link>
+      <joint name="gazebo_camera_world_joint" type="fixed">
+        <parent>world</parent><child>gazebo_camera_mount</child>
+      </joint>
+      <joint name="gazebo_camera_pan_joint" type="revolute">
+        <parent>gazebo_camera_mount</parent><child>gazebo_camera_pan_frame</child>
+        <axis><xyz>0 0 1</xyz><limit><lower>-2.8</lower><upper>-1.5</upper></limit><dynamics><damping>0.1</damping></dynamics></axis>
+      </joint>
+      <joint name="gazebo_camera_tilt_joint" type="revolute">
+        <parent>gazebo_camera_pan_frame</parent><child>gazebo_camera_sensor_frame</child>
+        <axis><xyz>0 1 0</xyz><limit><lower>0.35</lower><upper>0.9</upper></limit><dynamics><damping>0.1</damping></dynamics></axis>
+      </joint>
+      <plugin name="camera_joint_commands" filename="libgazebo_ros_joint_pose_trajectory.so">
+        <ros><namespace>/camera_scan</namespace></ros>
+        <update_rate>30</update_rate>
+      </plugin>
+      <plugin name="camera_joint_states" filename="libgazebo_ros_joint_state_publisher.so">
+        <ros><namespace>/camera_scan</namespace></ros>
+        <update_rate>30</update_rate>
+        <joint_name>gazebo_camera_pan_joint</joint_name>
+        <joint_name>gazebo_camera_tilt_joint</joint_name>
+      </plugin>
+    </model>
+
+    <model name="floor">
+      <static>true</static>
+      <pose>0 0 -0.005 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box><size>3.0 3.0 0.01</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>3.0 3.0 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.55 0.55 0.55 1</ambient>
+            <diffuse>0.55 0.55 0.55 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- A simple rear surface gives the depth camera finite returns behind the
+         manipulation volume, so free space is observed rather than inferred. -->
+    <model name="perception_backstop">
+      <static>true</static>
+      <pose>0 -1.05 1.00 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>4.0 0.04 2.0</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>4.0 0.04 2.0</size></box></geometry>
+          <material>
+            <ambient>0.72 0.74 0.76 1</ambient>
+            <diffuse>0.72 0.74 0.76 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+  </world>
+</sdf>

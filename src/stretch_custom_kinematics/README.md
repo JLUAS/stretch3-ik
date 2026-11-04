@@ -6,7 +6,7 @@
 
 | Executable | Description |
 |---|---|
-| `ik_preview` | Interactive `target_tcp` marker and ghost robot. Publishes preview joint state, TF and status under `/ik_preview` only. |
+| `ik_preview` | Interactive `target_tcp` marker and ghost robot. Also accepts grasp goals on `/ik_preview/grasp_goal` (position, approach axis and finger axis) and reports `base_dx` when only a base move along X can reach. Publishes preview joint state, TF and status under `/ik_preview` only. |
 | `fk_validator` | Compares FK against live TF and reports position/orientation error. |
 | `ik_benchmark` | Offline FK→IK→FK benchmark over random reachable samples. |
 | `offline_seed.py` | Domain-20-only mock robot state and trajectory controller for simulation and tests. |

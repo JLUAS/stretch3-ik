@@ -9,8 +9,12 @@
   <exec_depend>rosidl_default_runtime</exec_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>
   <depend>stretch_robot_interface</depend><depend>stretch_custom_kinematics</depend>
+  <depend>stretch_collision_planning</depend>
+  <depend>octomap_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>rclcpp</depend><depend>rclcpp_action</depend><depend>trajectory_msgs</depend>
   <depend>control_msgs</depend><depend>action_msgs</depend><depend>diagnostic_msgs</depend>
+  <depend>visualization_msgs</depend>
   <depend>rcl_interfaces</depend><depend>std_srvs</depend><depend>std_msgs</depend>
   <depend>sensor_msgs</depend><depend>ament_index_cpp</depend>
   <exec_depend>launch_ros</exec_depend><exec_depend>launch</exec_depend>

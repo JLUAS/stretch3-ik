@@ -32,7 +32,12 @@ class MockHardware(Node):
                             'joint_right_wheel', 'joint_left_wheel',
                             'joint_gripper_finger_left', 'joint_gripper_finger_right']
         
-        self.current_positions = [.4, .025, .025, .025, .025, 0., -.6, 0., 0., 0., 0., 0., 0., 0.]
+        # Start in a configuration that is known FREE in the deterministic
+        # primitive desk scene used by stretch_collision_planning.
+        arm_stage = 0.061309970441661095 / 4.0
+        self.current_positions = [0.3540542588454913, arm_stage, arm_stage,
+                                  arm_stage, arm_stage, 0., -.6, 0.,
+                                  0., 0., 0., 0., 0., 0.]
         
         from rclpy.callback_groups import ReentrantCallbackGroup
         self.cb_group = ReentrantCallbackGroup()

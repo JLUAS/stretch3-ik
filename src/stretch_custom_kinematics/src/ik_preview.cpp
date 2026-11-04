@@ -1,4 +1,5 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#include <cmath>
 #include <diagnostic_msgs/msg/diagnostic_array.hpp>
 #include <filesystem>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -27,6 +28,9 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
     hardware_ = JointBounds::load(declare_parameter(
         "hardware_limits_file", share + "/config/hardware_limits.csv"));
     meshes_ = declare_parameter("mesh_package_path", std::string(""));
+    grasp_approach_tolerance_ =
+        declare_parameter("grasp_approach_tolerance", 0.12);
+    max_base_offset_ = declare_parameter("max_base_offset", 0.6);
     auto latched = rclcpp::QoS(1).reliable().transient_local();
     joints_ =
         create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
@@ -81,6 +85,16 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
               if (std::isfinite(m->position[i]))
                 raw_[m->name[i]] = m->position[i];
         });
+    goal_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+        "goal_pose", 10,
+        [this](geometry_msgs::msg::PoseStamped::ConstSharedPtr message) {
+          setExternalGoal(*message, false);
+        });
+    grasp_goal_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+        "grasp_goal", 10,
+        [this](geometry_msgs::msg::PoseStamped::ConstSharedPtr message) {
+          setExternalGoal(*message, true);
+        });
     timer_ =
         create_wall_timer(std::chrono::milliseconds(100), [this]() { tick(); });
 
@@ -98,6 +112,42 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
   }
 
  private:
+  // Grasp goals constrain position, approach (local X) and finger axis
+  // (local Y); other goals keep the XYZ + local-Z task.
+  void setExternalGoal(const geometry_msgs::msg::PoseStamped& message,
+                       bool grasp) {
+    if (!model_ || !have_target_) {
+      RCLCPP_WARN(get_logger(),
+                  "Ignoring external goal until IK preview is ready");
+      return;
+    }
+    const auto& p = message.pose.position;
+    const auto& q = message.pose.orientation;
+    const double q_norm =
+        std::sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+    // The preview base mirrors the robot base, so both names are the same frame.
+    const bool known_frame = message.header.frame_id == frame() ||
+                             message.header.frame_id == model_->base();
+    if (!known_frame || !std::isfinite(p.x) || !std::isfinite(p.y) ||
+        !std::isfinite(p.z) || !std::isfinite(q_norm) || q_norm < 1e-6) {
+      RCLCPP_ERROR(get_logger(),
+                   "Rejected external IK goal: expected finite pose in %s",
+                   frame().c_str());
+      return;
+    }
+    target_pose_ = message.pose;
+    target_pose_.orientation.x /= q_norm;
+    target_pose_.orientation.y /= q_norm;
+    target_pose_.orientation.z /= q_norm;
+    target_pose_.orientation.w /= q_norm;
+    grasp_mode_ = grasp;
+    goal_stamp_ns_ = int64_t(message.header.stamp.sec) * 1000000000 +
+                     message.header.stamp.nanosec;
+    bad_frame_ = false;
+    dirty_ = true;
+    server_->setPose("target_tcp", target_pose_);
+    server_->applyChanges();
+  }
   void callTriggerService(rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr client) {
     if (!client->service_is_ready()) {
       RCLCPP_WARN(get_logger(), "Service %s is not available (is the executor running?)", client->get_service_name());
@@ -149,6 +199,8 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
   void initialize() {
     IkOptions options;
     options.state_timeout = get_parameter("state_timeout").as_double();
+    options.approach_tolerance = grasp_approach_tolerance_;
+    options.max_base_offset = max_base_offset_;
     ik_ = std::make_unique<InverseKinematics>(model_, hardware_, options);
     if (!display_model_.initString(xml_))
       throw std::invalid_argument("Invalid display model");
@@ -210,6 +262,8 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
     server_->insert(m, [this](Feedback::ConstSharedPtr f) {
       if (f->event_type != Feedback::POSE_UPDATE) return;
       target_pose_ = f->pose;
+      grasp_mode_ = false;
+      goal_stamp_ns_ = 0;
       bad_frame_ = f->header.frame_id != frame();
       dirty_ = true;
       server_->setPose("target_tcp", target_pose_);
@@ -243,26 +297,71 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
           result_.orientation_error = INFINITY;
       result_.solve_time_ms = 0;
       result_.iterations = 0;
+      base_dx_ = NAN;  // a correction from an earlier solve is not an answer
       dirty_ = true;
       publishDisplay();
       return;
+    }
+    // The executor requires the measured start to match the IK seed (1 mm,
+    // 5 mrad); re-solve the same target when the arm drifts from the seed
+    // (after a stop, a mode switch, gravity) so the candidate stays usable.
+    if (!dirty_ && last_seed_ && last_solution_) {
+      const JointVector drift =
+          (coordinates(*current) - coordinates(*last_seed_)).cwiseAbs();
+      const JointVector limit =
+          (JointVector() << .0005, .0005, .0025, .0025, .0025).finished();
+      if ((drift.array() > limit.array()).any()) dirty_ = true;
     }
     if (dirty_) {
       last_seed_ = *current;
       if (bad_frame_) {
         result_ = IkResult();
         result_.reason = IkFailure::InvalidTarget;
-      } else
-        result_ =
-            ik_->solve(target_pose_, *current,
-                       (now() - rclcpp::Time(current->timestamp,
-                                             get_clock()->get_clock_type()))
-                           .seconds());
+      } else {
+        const double age = (now() - rclcpp::Time(current->timestamp,
+                                                 get_clock()->get_clock_type()))
+                               .seconds();
+        base_dx_ = NAN;
+        if (!grasp_mode_) {
+          result_ = ik_->solve(target_pose_, *current, age);
+        } else {
+          Eigen::Isometry3d t = Eigen::Isometry3d::Identity();
+          const auto& o = target_pose_.orientation;
+          t.linear() = Eigen::Quaterniond(o.w, o.x, o.y, o.z).toRotationMatrix();
+          t.translation() = Eigen::Vector3d(target_pose_.position.x,
+                                            target_pose_.position.y,
+                                            target_pose_.position.z);
+          result_ = ik_->solveGrasp(t, *current, age, false);
+          base_dx_ = 0;
+          if (!result_.success) {
+            // Only reported: the executor never runs a moved-base solution.
+            auto moved = ik_->solveGrasp(t, *current, age, true);
+            base_dx_ = moved.success ? moved.base_dx : NAN;
+          }
+        }
+      }
       if (result_.success) {
         last_solution_ = result_.solution;
         solved_pose_ =
             ForwardKinematics(model_).computeTcpPose(result_.solution);
       }
+      const auto start = coordinates(*current);
+      const auto goal = result_.success ? coordinates(result_.solution)
+                                        : JointVector::Constant(NAN);
+      RCLCPP_INFO(
+          get_logger(),
+          "[IK_TRACE] target_xyz=[%.6f %.6f %.6f] target_frame=%s "
+          "q_start=[%.6f %.6f %.6f %.6f %.6f] "
+          "q_goal=[%.6f %.6f %.6f %.6f %.6f] status=%s",
+          target_pose_.position.x, target_pose_.position.y,
+          target_pose_.position.z, frame().c_str(), start[0], start[1],
+          start[2], start[3], start[4], goal[0], goal[1], goal[2], goal[3],
+          goal[4], failureName(result_.reason));
+      RCLCPP_INFO(get_logger(),
+                  "[LIFT_TRACE] stage=ik target_z=%.6f target_frame=%s "
+                  "transformed_z=%.6f ik_lift=%.6f status=%s",
+                  target_pose_.position.z, frame().c_str(),
+                  target_pose_.position.z, goal[0], failureName(result_.reason));
       dirty_ = false;
     }
     if (last_solution_) publishGhost(*last_solution_);
@@ -335,13 +434,24 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "%s",
                          message.c_str());
   }
+  // A grasp the fixed base cannot reach but a base move can is not an
+  // error: say so instead of the fixed-base failure (often "joint limit").
+  std::string statusText() const {
+    if (grasp_mode_ && !result_.success && std::isfinite(base_dx_)) {
+      std::ostringstream s;
+      s << "base move needed: dx=" << std::showpos << std::fixed
+        << std::setprecision(3) << base_dx_ << " m";
+      return s.str();
+    }
+    return failureName(result_.reason);
+  }
   void publishDisplay() {
     diagnostic_msgs::msg::DiagnosticArray status;
     status.header.stamp = now();
     diagnostic_msgs::msg::DiagnosticStatus entry;
     entry.name = "ik_preview";
     entry.level = result_.success ? entry.OK : entry.ERROR;
-    entry.message = failureName(result_.reason);
+    entry.message = statusText();
     auto add = [&](const std::string& key, const std::string& value) {
       diagnostic_msgs::msg::KeyValue p;
       p.key = key;
@@ -355,6 +465,15 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
     add("solve_time_ms", std::to_string(result_.solve_time_ms));
     add("iterations", std::to_string(result_.iterations));
     add("attempts", std::to_string(result_.attempts));
+    add("target_frame", frame());
+    add("target_z", number(target_pose_.position.z));
+    // Lets clients match an answer to the goal they sent.
+    add("target_xyz", number(target_pose_.position.x) + " " +
+                          number(target_pose_.position.y) + " " +
+                          number(target_pose_.position.z));
+    add("transformed_z", number(target_pose_.position.z));
+    add("ik_goal_lift",
+        result_.success ? number(result_.solution.lift) : "nan");
     if (last_seed_) {
       std::ostringstream seed;
       seed << std::setprecision(17) << coordinates(*last_seed_).transpose();
@@ -363,7 +482,21 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
       add("seed_stamp_nanoseconds",
           std::to_string(rclcpp::Time(last_seed_->timestamp).nanoseconds()));
     }
-    add("task", "XYZ + TCP local Z unit direction; spin about Z unconstrained");
+    add("task", grasp_mode_
+                    ? "grasp: XYZ + approach (local X) + finger axis (local Y)"
+                    : "XYZ + TCP local Z unit direction; spin about Z unconstrained");
+    add("approach_error_rad", number(result_.approach_error));
+    // Forward base translation that makes a failed grasp goal reachable.
+    add("base_dx", number(base_dx_));
+    // Header stamp of the external goal this answer belongs to (0: marker).
+    add("goal_stamp_ns", std::to_string(goal_stamp_ns_));
+    if (result_.success) {
+      const auto& p = solved_pose_.position;
+      const auto& o = solved_pose_.orientation;
+      add("solved_pose", number(p.x) + " " + number(p.y) + " " + number(p.z) +
+                             " " + number(o.x) + " " + number(o.y) + " " +
+                             number(o.z) + " " + number(o.w));
+    }
     if (last_solution_) {
       std::ostringstream q;
       q << std::setprecision(17) << coordinates(*last_solution_).transpose();
@@ -419,7 +552,7 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
     text.color.r = result_.success ? .3 : 1;
     text.color.g = result_.success ? 1 : .3;
     text.color.b = .8;
-    text.text = failureName(result_.reason);
+    text.text = statusText();
     list.markers.push_back(text);
     markers_->publish(list);
   }
@@ -428,7 +561,10 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
   urdf::Model display_model_;
   std::string xml_, meshes_;
   std::map<std::string, double> raw_;
-  bool have_target_ = false, dirty_ = false, bad_frame_ = false;
+  bool have_target_ = false, dirty_ = false, bad_frame_ = false,
+       grasp_mode_ = false;
+  double base_dx_ = NAN, grasp_approach_tolerance_ = .12, max_base_offset_ = .6;
+  int64_t goal_stamp_ns_ = 0;
   geometry_msgs::msg::Pose target_pose_, solved_pose_;
   std::optional<RobotState> last_solution_, last_seed_;
   IkResult result_;
@@ -442,6 +578,8 @@ class IkPreview : public stretch_robot_interface::InterfaceNode {
       solved_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr model_sub_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr raw_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_sub_,
+      grasp_goal_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
   interactive_markers::MenuHandler menu_handler_;
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr arm_client_;

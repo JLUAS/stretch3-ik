@@ -26,7 +26,8 @@ class RobotModel {
   static const std::array<std::string, 4> arm_names;
 
  private:
-  void check(const std::string& name, double value) const;
+  void check(const std::string& name, double value,
+             double tolerance = 1e-8) const;
   urdf::Model model_;
   std::vector<urdf::JointConstSharedPtr> chain_;
   std::string base_, tcp_;

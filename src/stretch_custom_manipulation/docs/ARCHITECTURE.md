@@ -4,13 +4,14 @@ This meta-package unifies the manipulation stack for the Stretch robot, providin
 
 ## Package Structure
 
-The workspace consists of 5 packages:
+The workspace consists of 6 packages:
 
 1. **stretch_custom_manipulation**: The meta bringup package. Contains unified launch files (`sim:=true/false`), configuration for execution limits, unified RViz configuration, and documentation. No C++ code.
 2. **stretch_robot_interface**: A read-only, hardware-execution-free logical representation of the Stretch physical state. Normalizes measurements, filters noise, checks freshness and establishes homing/runstop flags.
 3. **stretch_custom_kinematics**: Provides Inverse Kinematics and an interactive RViz ghost robot (preview) that accepts TCP requests and solves the 5-DoF constraints (`x, y, z` plus target TCP Z-axis direction).
 4. **stretch_guarded_executor**: The core safety state machine. Intercepts the preview target, validates it against per-joint acceleration and velocity bounds, tracks it against execution envelopes, and generates the multi-joint quintic splines for the Stretch driver.
 5. **stretch_lift_rviz_control**: Legacy UI panel specifically for absolute, explicit lift actuation testing.
+6. **stretch_collision_planning**: OctoMap and primitive collision scenes, capsule model of the arm, state validity checks, RRT-Connect with shortcutting, and the `octomap_builder` node.
 
 ## Execution Data Flow
 
@@ -36,5 +37,6 @@ The workspace consists of 5 packages:
 - **Immutable Approval**: Each segment is validated against its measured seed;
   drift invalidates that approval. The full target is fixed at the initial click.
   All five measured joint endpoints must satisfy tolerance before proceeding.
-- **Scope**: XYZ plus TCP local-Z direction, fixed base, no collision planning.
-  Simulation validates ROS transport and kinematics, not physical dynamics.
+- **Scope**: XYZ plus TCP local-Z direction, fixed base, collision-aware
+  RRT-Connect over five arm coordinates. Simulation validates ROS transport,
+  perception, TF, planning, and kinematics, not physical contacts or dynamics.
