@@ -21,3 +21,25 @@ def test_localization_does_not_mutate_the_source_color_header():
     assert seg.header.frame_id=='camera_color_optical_frame'
     assert seg.mask.header.frame_id=='camera_color_optical_frame'
     assert outputs[0].header.stamp==seg.header.stamp
+
+
+def test_dotted_rgbd_geometry_mask_keeps_its_points():
+    # The rgbd_geometry mask is a lattice of depth-owned pixels (1 px gaps),
+    # as captured on the robot: two erosion steps used to leave nothing.
+    import numpy as np
+    from sensor_msgs.msg import Image
+    h, w = 120, 160
+    mask = np.zeros((h, w), np.uint8)
+    mask[40:80:2, 60:100] = 255
+    mask[40:80, 60:100:3] = 0
+    depth = np.full((h, w), 450, np.uint16)
+    stamp = Header(frame_id='camera_color_optical_frame')
+    stamp.stamp.sec = 5
+    msg = Image(header=stamp, height=h, width=w, encoding='mono8', step=w, data=mask.tobytes())
+    dimg = Image(header=stamp, height=h, width=w, encoding='16UC1', step=2 * w, data=depth.tobytes())
+    node = NS(info=NS(k=[600.0, 0, 80, 0, 600.0, 60, 0, 0, 1]), depths=[dimg], max_skew=0.1,
+              frame='odom', tf=NS(lookup_transform=lambda *a, **k: (_ for _ in ()).throw(
+                  module.TransformException('stop after the depth step'))))
+    for source, expect_points in (('rgbd_geometry', True), ('sam2', False)):
+        reason = module.ObjectLocalizer.localize(node, msg, ObjectObservation(source=source))
+        assert ('valid depth points' not in reason) == expect_points, (source, reason)

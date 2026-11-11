@@ -198,6 +198,12 @@ stateDiagram-v2
    lines). `/grasp_mission/stop` stops arm, base and mission;
    `/grasp_mission/release` opens the gripper.
 
+For a compact desktop control panel, run
+`ros2 run stretch_custom_manipulation grasp_panel.py`. It controls dry/live
+bringup, click autostart, perception pause/resume, pick, stop and gripper
+release. During a mission the segmentation node remains running but pauses
+processing and topic output until the arm is released.
+
 Every mission ends exactly once: `SUCCEEDED` only when the fingers stopped on
 the object after the carry, otherwise `ABORTED` with an error code and the
 failed stage. Any failure after motion started stops the executor and waits

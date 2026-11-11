@@ -64,6 +64,22 @@ commands and keep each run's output in `~/grasping_logs/`. They need
 `dry_run:=false` once the dry run looks right. The robot must be homed and
 the runstop released.
 
+For the small desktop test panel, run:
+
+```bash
+source ~/ament_ws/install/setup.bash
+source ~/grasp_test_ws/install/setup.bash   # only while testing from the test workspace
+ros2 run stretch_custom_manipulation grasp_panel.py
+```
+
+It starts or stops the bringup with `~/grasp_test_{dryrun,run,stop}.sh` when
+those exist (the robot test workspace), otherwise `scripts/grasping_*.sh` in
+`~/ament_ws`; `--dryrun-cmd`, `--live-cmd` and `--stop-cmd` override them.
+It toggles click autostart,
+pauses or resumes perception without stopping its node, and exposes pick,
+stop, release and fault-clear actions. The live-run button always asks for
+confirmation before starting a motion-enabled bringup.
+
 Pass `perception_viewer:=true` to open rqt on `/perception/preview` (upright).
 Set rqt rotation to **0 degrees** and the click topic to
 `/perception/preview_mouse_left`. Alternatively use the native
@@ -86,6 +102,10 @@ frames, dimensions, configuration and perception-only testing.
    with the reason. Nothing moves in those two cases. Live options:
    `ros2 param set /grasp_mission grasp_mode top|side|auto`,
    `fully_open true|false`, `auto_start false` (then use step 4).
+   Once the mission owns the arm, it publishes `false` on
+   `/perception/enable`; the perception node stays alive but stops processing
+   and publishing segmentation data until the mission finishes. It then
+   publishes `true`. `/perception/enabled` reports the current state.
 4. `ros2 service call /grasp_mission/pick std_srvs/srv/Trigger` answers at
    once: `started mission_id=pick-...` or the reason it did not start
    (`NOT_READY: missing: ...`, `BUSY`, `STALE_OBSERVATION`, ...). Submit once;
@@ -131,7 +151,7 @@ frames, dimensions, configuration and perception-only testing.
 | `search_pan`, `search_tilt` | -1.571, -0.45 | Head pose for the right side (shelf at ~1 m) |
 | `navigation_pan`, `navigation_tilt` | 0.0, -0.6 | Head pose while Nav2 drives |
 | `pregrasp_offset` | 0.10 | Pre-grasp distance before the grasp (m) |
-| `close_aperture` | -0.02 | Squeeze target when closing (m) |
+| `close_below_width` | 0.01 | Close to the object's measured width across the fingers minus this (m); read at each grasp |
 | `min_held_aperture` | 0.01 | Below this after closing: nothing grasped |
 | `max_object_size` | 0.35 | Larger selections are rejected (shelf, wall, leaked mask) |
 | `max_base_correction` | 0.5 | Largest base correction before asking to re-navigate (m) |
@@ -140,6 +160,10 @@ frames, dimensions, configuration and perception-only testing.
 | `reobserve_at_pregrasp` | false | Fresh observation before the approach. Off: at the pre-grasp the gripper hides the object from the head camera |
 | `max_target_shift` | 0.03 | Larger shift at re-observation aborts (m) |
 | `max_observation_age` | 120 | Older clicks are refused (s) |
+| `auto_start` | true | A valid click starts the mission; false waits for `~/pick`. Read at each click |
+| `fully_open` | false | false: opening = object width across the fingers + 2 x 1.5 cm + `extra_opening`; true: 13 cm. Both narrower where a neighbor is closer |
+| `extra_opening` | 0.01 | Extra opening on top of the 3 cm margin (m); the head camera sees cans about 1 cm narrower than they are |
+| `pause_perception` | true | Publish `false` on `/perception/enable` from the first IK call to the end of the mission |
 
 Arm speed lives in `config/real.yaml` (`max_velocity`, `max_acceleration`):
 0.10 m/s lift/arm, 0.6 rad/s wrist. If tracking aborts on the robot, halve

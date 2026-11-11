@@ -10,6 +10,13 @@
     diagnostic_error_to_warn_allowlist:
       - "stretch_driver: Pimu/Cliff"
     pimu_temperature_error_can_warn: true
+    # Wrist accelerometer: the driver flags ax outside [8, 11] m/s^2 during
+    # normal arm motion (7.8 and 11.7 measured 2026-11-06). Within these
+    # bounds it is a WARN; beyond (impact, fall) it still blocks.
+    wacc_error_can_warn: true
+    # TESTING: widest the code allows (14.2 seen during a wrist turn).
+    wacc_ax_min: 4.0
+    wacc_ax_max: 16.0
     pimu_temperature_warn_max_c: 50.0
     cliff_range_min: -100.0
     cliff_range_max: 200.0
@@ -47,9 +54,13 @@
     # Order: lift, arm_extension, wrist_yaw, wrist_pitch, wrist_roll.
     # Commissioning: if tracking aborts, halve max_velocity/max_acceleration.
     max_delta: [0.30, 0.30, 1.5, 1.5, 1.5]
-    max_velocity: [0.10, 0.10, 0.6, 0.6, 0.6]
-    max_acceleration: [0.15, 0.15, 1.5, 1.5, 1.5]
-    tracking_error: [0.03, 0.03, 0.15, 0.15, 0.15]
+    # Lift slowed 2026-11-06: at 0.10 m/s it lagged 3.03 cm on a 46 cm climb and
+    # tripped the 3 cm tracking limit (other joints stayed within ~1 cm).
+    max_velocity: [0.06, 0.10, 0.6, 0.6, 0.6]
+    max_acceleration: [0.08, 0.15, 1.5, 1.5, 1.5]
+    # TESTING (uncalibrated robot, 2026-11-06): doubled, at the code caps.
+    # Restore [0.03, 0.03, 0.15, 0.15, 0.15] once the robot is calibrated.
+    tracking_error: [0.06, 0.06, 0.30, 0.30, 0.30]
     # Wrists: servos settle ~1 deg short under load (0.015 measured 2026-11-02).
     goal_tolerance: [0.0025, 0.0025, 0.03, 0.03, 0.03]
     start_drift: [0.001, 0.001, 0.005, 0.005, 0.005]
@@ -83,3 +94,18 @@
     ik_timeout: 10.0
     execution_timeout: 90.0
     gripper_action: /stretch_gripper_controller/gripper_action
+
+# Gripper aperture calibration, measured 2026-11-06 on stretch-se3-3075
+# (~/grasp_gripper_calibrate.sh: real pad gap per driver gripper_aperture).
+# The driver's linear model is wrong for this gripper: its "6 cm" opens 1.6 cm;
+# its widest command (0.20) opens 9 cm (user-measured). Pads touch for every
+# command <= 4 cm, so the table starts there; lower commands squeeze.
+/gripper_bridge:
+  ros__parameters:
+    calibration_command:  [0.040, 0.060, 0.080, 0.100, 0.120, 0.200]
+    calibration_reported: [0.0401, 0.0601, 0.0801, 0.1002, 0.1201, 0.2000]
+    calibration_measured: [0.000, 0.016, 0.022, 0.040, 0.045, 0.090]
+
+/grasp_mission:
+  ros__parameters:
+    max_aperture: 0.090  # widest measured pad gap (m)

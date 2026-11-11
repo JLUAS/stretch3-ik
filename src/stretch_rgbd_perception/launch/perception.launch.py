@@ -20,8 +20,12 @@ def generate_launch_description():
         DeclareLaunchArgument('pose_source', default_value='tf'),
         DeclareLaunchArgument('reference_frame', default_value='odom'),
         DeclareLaunchArgument('ocr_enabled', default_value='true'),
+        DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('python_executable', default_value=os.environ.get('STRETCH_PERCEPTION_PYTHON', os.path.expanduser('~/venvs/stretch_perception/bin/python3'))),
         DeclareLaunchArgument('config', default_value=os.path.join(share, 'config', 'perception.yaml')),
+        # Loaded after config; defaults to config itself (no change). The MuJoCo
+        # sim passes its resolution-scaled thresholds here.
+        DeclareLaunchArgument('override_config', default_value=os.path.join(share, 'config', 'perception.yaml')),
         SetEnvironmentVariable('OMP_NUM_THREADS', '4'),
         SetEnvironmentVariable('OPENBLAS_NUM_THREADS', '1'),
         IncludeLaunchDescription(PythonLaunchDescriptionSource(os.path.join(
@@ -36,9 +40,10 @@ def generate_launch_description():
                 'pointcloud.enable': 'false', 'initial_reset': 'false'}.items()),
         Node(package='stretch_rgbd_perception', executable='perception_node', name='rgbd_perception',
              prefix=[config('python_executable'), ' -B'], output='screen',
-             parameters=[config('config'), {'pose_source': config('pose_source'),
+             parameters=[config('config'), config('override_config'), {'pose_source': config('pose_source'),
                  'reference_frame': config('reference_frame'),
-                 'ocr_enabled': ParameterValue(config('ocr_enabled'), value_type=bool)}]),
+                 'ocr_enabled': ParameterValue(config('ocr_enabled'), value_type=bool),
+                 'use_sim_time': ParameterValue(config('use_sim_time'), value_type=bool)}]),
         Node(package='rqt_image_view', executable='rqt_image_view', name='rgbd_image_view',
              arguments=['/perception/preview'], condition=IfCondition(config('viewer')), output='screen'),
     ])

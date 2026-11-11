@@ -80,7 +80,10 @@ class ObjectLocalizer(Node):
         d = np.frombuffer(depth.data, np.uint16).reshape(
             depth.height, depth.step // 2)[:, :depth.width]
         k = self.info.k
-        points = gp.mask_points(mask, d, k[0], k[4], k[2], k[5])
+        # rgbd_geometry masks are dotted pixels already owned by the object's
+        # depth: eroding them (meant for filled masks) deletes every pixel.
+        erode = 0 if obs.source == 'rgbd_geometry' else 2
+        points = gp.mask_points(mask, d, k[0], k[4], k[2], k[5], erode=erode)
         if len(points) < 30:
             return f'only {len(points)} valid depth points on the object'
         try:

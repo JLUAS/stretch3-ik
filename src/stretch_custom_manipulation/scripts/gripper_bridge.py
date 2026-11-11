@@ -10,6 +10,7 @@ Success is judged on the measured aperture: closing on an object ends in a
 driver "contact" error, which is a grasp, while an open that falls short is
 a failure. A negative aperture squeezes a grasped object.
 """
+import bisect
 import threading
 import time
 
@@ -20,6 +21,7 @@ from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalRespons
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
@@ -35,6 +37,26 @@ def finger_to_aperture(finger):
     return 2.0 * finger * FINGER_LENGTH
 
 
+def interp(x, xs, ys):
+    """Piecewise linear through (xs, ys), extended with the end segments
+    (a negative squeeze command stays a squeeze)."""
+    k = min(max(bisect.bisect_left(xs, x), 1), len(xs) - 1)
+    return ys[k - 1] + (ys[k] - ys[k - 1]) * (x - xs[k - 1]) / (xs[k] - xs[k - 1])
+
+
+def calibration(command, reported, measured):
+    """Validated table, or None when not configured. The driver's linear
+    aperture model is wrong for this gripper (6 cm commanded opened ~2 cm)."""
+    if not command and not reported and not measured:
+        return None
+    rows = (list(command or []), list(reported or []), list(measured or []))
+    if len({len(r) for r in rows}) != 1 or len(rows[0]) < 2 or any(
+            any(b <= a for a, b in zip(r, r[1:])) for r in rows):
+        raise ValueError('calibration_command/reported/measured: equal lengths >= 2, '
+                         'each strictly increasing')
+    return rows
+
+
 class GripperBridge(Node):
     def __init__(self):
         super().__init__('gripper_bridge')
@@ -42,6 +64,12 @@ class GripperBridge(Node):
         self.max_aperture = self.declare_parameter('max_aperture', 0.13).value
         self.speed = self.declare_parameter('finger_speed', 0.6).value  # rad/s
         self.tolerance = self.declare_parameter('goal_tolerance', 0.01).value
+        # Measured pad gap per driver command (see grasp_gripper_calibrate).
+        self.cal = calibration(*(self.declare_parameter(n, Parameter.Type.DOUBLE_ARRAY).value
+                                 for n in ('calibration_command', 'calibration_reported',
+                                           'calibration_measured')))
+        if self.cal:
+            self.get_logger().info(f'Aperture calibration: widest {self.cal[2][-1] * 100:.1f} cm')
         action = self.declare_parameter(
             'trajectory_action', '/stretch_controller/follow_joint_trajectory').value
         group = ReentrantCallbackGroup()
@@ -86,6 +114,12 @@ class GripperBridge(Node):
             return GoalResponse.REJECT
         return GoalResponse.ACCEPT
 
+    def to_driver(self, aperture):
+        return interp(aperture, self.cal[2], self.cal[0]) if self.cal else aperture
+
+    def to_physical(self, reading):
+        return interp(reading, self.cal[1], self.cal[2]) if self.cal else reading
+
     def measured(self):
         with self.lock:
             if self.finger is None or time.monotonic() - self.finger_time > 0.5:
@@ -115,10 +149,13 @@ class GripperBridge(Node):
             while self.mode != 'position' and time.monotonic() < end:
                 time.sleep(0.05)
         target = handle.request.command.position
+        if self.cal and target > self.cal[2][-1]:
+            # Wider than measured: open as far as calibrated, report the real width.
+            target = self.cal[2][-1]
         goal = FollowJointTrajectory.Goal()
         goal.trajectory.joint_names = ['gripper_aperture']
         point = JointTrajectoryPoint()
-        point.positions = [float(target)]
+        point.positions = [float(self.to_driver(target))]
         goal.trajectory.points.append(point)
         driver = self.wait(self.client.send_goal_async(goal), 5)
         if driver is None or not driver.accepted:
@@ -138,10 +175,10 @@ class GripperBridge(Node):
         if end_finger is None:
             handle.abort()
             return result
-        result.position = finger_to_aperture(end_finger)
+        result.position = self.to_physical(finger_to_aperture(end_finger))
         result.reached_goal = abs(result.position - target) <= self.tolerance
         result.stalled = not result.reached_goal and target < result.position
-        opening = target > finger_to_aperture(start) + self.tolerance
+        opening = target > self.to_physical(finger_to_aperture(start)) + self.tolerance
         if opening and not result.reached_goal:
             self.get_logger().error(
                 f'Gripper did not open: {result.position:.3f} m of {target:.3f} m')

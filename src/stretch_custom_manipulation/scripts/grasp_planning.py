@@ -9,11 +9,15 @@ import math
 
 import numpy as np
 
-MAX_APERTURE = 0.13       # SG3 opening used for planning
+MAX_APERTURE = 0.13       # default widest opening; the robot's is measured (gripper calibration)
 APERTURE_MARGIN = 0.015   # free space per side between finger and object
 MIN_MARGIN = 0.005        # smallest acceptable per-side margin
 FINGER_THICKNESS = 0.015  # finger material outside the commanded aperture
 FINGER_HALF_HEIGHT = 0.03
+# The fingertips sit this far BEHIND link_grasp_center along the approach when
+# gripping 4-15 cm (robot URDF: 1.5 cm closed, 2.1 cm at 15 cm apart).
+FINGERTIP_BEHIND = 0.017
+MAX_ALIGN_YAW = math.radians(25)
 BODY_HALF_WIDTH = 0.05    # gripper body and wrist behind the fingers
 BODY_LENGTH = 0.20
 
@@ -35,7 +39,8 @@ def _approach(yaw, pitch):
     return np.array([c * math.sin(yaw), -c * math.cos(yaw), math.sin(pitch)])
 
 
-def _candidate(obj, scene, rot, mode, pregrasp_offset, insert, extra=0.0, why=None):
+def _candidate(obj, scene, rot, mode, pregrasp_offset, insert, extra=0.0, why=None,
+               max_aperture=MAX_APERTURE):
     """Pose and aperture for one approach frame, or None if it does not fit
     (the reason is appended to `why` when given)."""
     def reject(text):
@@ -45,10 +50,13 @@ def _candidate(obj, scene, rot, mode, pregrasp_offset, insert, extra=0.0, why=No
     a, f, z = rot[:3, 0], rot[:3, 1], rot[:3, 2]
     pa, pf, pz = obj @ a, obj @ f, obj @ z
     width = pf.max() - pf.min()
-    if width + 2 * MIN_MARGIN > MAX_APERTURE:
+    if width + 2 * MIN_MARGIN > max_aperture:
         return reject(f'object {width * 100:.1f} cm across the fingers, gripper opens '
-                      f'{MAX_APERTURE * 100:.0f} cm')
-    depth_in = min(max(0.5 * width, 0.02), insert)
+                      f'{max_aperture * 100:.1f} cm')
+    # `insert`: how far the fingertips reach past the near face. Only the near
+    # side is seen, so a side grasp cannot be capped by the object's depth.
+    tip_in = insert if mode == 'side' else min(insert, max(pa.max() - pa.min() - 0.01, 0.01))
+    depth_in = tip_in + FINGERTIP_BEHIND
     mid_f = 0.5 * (pf.min() + pf.max())
     if mode == 'side':
         # Depth from the object's horizontal near face, height in world z: on a
@@ -85,9 +93,9 @@ def _candidate(obj, scene, rot, mode, pregrasp_offset, insert, extra=0.0, why=No
         hit = world[body]
         return reject(f'gripper body/wrist hits {int(body.sum())} scene points around z '
                       f'{np.median(hit[:, 2]):.2f} m (grasp z {center[2]:.2f})')
-    # Finger sweep from pre-grasp to just past the pads (they end 1-2 cm past
-    # the grasp center).
-    sweep = ((rel[:, 0] > -pregrasp_offset) & (rel[:, 0] < 0.025) &
+    # Finger sweep from pre-grasp to 1 cm past the fingertips, which stop
+    # FINGERTIP_BEHIND before the grasp center.
+    sweep = ((rel[:, 0] > -pregrasp_offset) & (rel[:, 0] < 0.01 - FINGERTIP_BEHIND) &
              (np.abs(rel[:, 2]) < FINGER_HALF_HEIGHT + 0.01))
     if mode == 'side':
         # The support surface and its depth noise (<= 1.2 cm above the object's
@@ -95,7 +103,7 @@ def _candidate(obj, scene, rot, mode, pregrasp_offset, insert, extra=0.0, why=No
         sweep &= world[:, 2] > obj[:, 2].min() + 0.012
     side = np.abs(rel[sweep, 1])
     clearance = side.min() if len(side) else math.inf
-    allowed = min(MAX_APERTURE, 2 * (clearance - FINGER_THICKNESS))
+    allowed = min(max_aperture, 2 * (clearance - FINGER_THICKNESS))
     # `extra`: opening beyond the margins, still limited by neighbors and 13 cm.
     aperture = min(width + 2 * APERTURE_MARGIN + extra, allowed)
     if aperture < width + 2 * MIN_MARGIN:
@@ -118,8 +126,25 @@ def _candidate(obj, scene, rot, mode, pregrasp_offset, insert, extra=0.0, why=No
             'width': float(width), 'clearance': float(clearance)}
 
 
+def object_yaw(obj):
+    """Yaw (rad, within +-MAX_ALIGN_YAW) of a box's faces in the xy plane: the
+    rotation whose bounding rectangle is smallest. 0 for round or unclear shapes."""
+    xy = np.asarray(obj, float)[:, :2]
+    xy = xy - xy.mean(0)
+    def area(t):
+        c, s = math.cos(t), math.sin(t)
+        r = xy @ np.array([[c, -s], [s, c]])
+        return np.prod(r.max(0) - r.min(0))
+    angles = np.radians(np.arange(-25.0, 25.5, 0.5))
+    areas = np.array([area(t) for t in angles])
+    best = angles[int(np.argmin(areas))]
+    # A can's footprint barely changes with rotation: keep it straight.
+    return float(best) if areas.min() < 0.93 * area(0.0) else 0.0
+
+
 def plan_grasps(obj, scene, pregrasp_offset=0.10, insert=0.04, extra_opening=0.0,
-                yaws=(0.0,), pitches=(0.0, -0.25), why=None):
+                yaws=(0.0,), pitches=(0.0, -0.25), why=None, align=True,
+                max_aperture=MAX_APERTURE):
     """Ranked grasp candidates for object points `obj` among `scene` points.
 
     Side grasps approach along the arm direction (-y), level or tilted down;
@@ -132,6 +157,10 @@ def plan_grasps(obj, scene, pregrasp_offset=0.10, insert=0.04, extra_opening=0.0
     scene = np.asarray(scene, float).reshape(-1, 3)
     if len(obj) < 10:
         return []
+    # Side grasps turn the wrist to the box's faces but still move straight
+    # along the arm (-y): pre-grasp and grasp keep the same x and wrist yaw.
+    turn = np.eye(4)
+    turn[:3, :3] = _rot([0.0, 0.0, 1.0], object_yaw(obj) if align else 0.0)
     out = []
     for yaw in yaws:
         for pitch in pitches:
@@ -139,11 +168,13 @@ def plan_grasps(obj, scene, pregrasp_offset=0.10, insert=0.04, extra_opening=0.0
             f = np.cross([0.0, 0.0, 1.0], a)
             reasons = []
             c = _candidate(obj, scene, frame(a, f), 'side', pregrasp_offset, insert,
-                           extra_opening, reasons)
+                           extra_opening, reasons, max_aperture)
             if why is not None and reasons:
                 why.append(f'side {"level" if pitch == 0 else f"tilted {pitch:+.2f}"}'
                            f'{"" if yaw == 0 else f" yaw {yaw:+.2f}"}: {reasons[0]}')
             if c:
+                for k in ('grasp', 'pregrasp', 'lift', 'retreat'):
+                    c[k][:3, :3] = turn[:3, :3] @ c[k][:3, :3]
                 c['score'] = (min(c['clearance'], 0.1) - 0.3 * abs(yaw) -
                               0.2 * abs(pitch))
                 c['key'] = ('side', yaw, pitch)  # same grasp across re-plans
@@ -154,7 +185,7 @@ def plan_grasps(obj, scene, pregrasp_offset=0.10, insert=0.04, extra_opening=0.0
     narrow = np.append(v[:, int(np.argmin(w))], 0.0)
     reasons = []
     c = _candidate(obj, scene, frame([0.0, 0.0, -1.0], narrow), 'top',
-                   pregrasp_offset, 0.03, extra_opening, reasons)
+                   pregrasp_offset, 0.03, extra_opening, reasons, max_aperture)
     if why is not None and reasons:
         why.append(f'top-down: {reasons[0]}')
     if c:
@@ -164,13 +195,14 @@ def plan_grasps(obj, scene, pregrasp_offset=0.10, insert=0.04, extra_opening=0.0
     return sorted(out, key=lambda c: -c['score'])
 
 
-def fits(obj, scene, rot, pregrasp_offset=0.10):
+def fits(obj, scene, rot, pregrasp_offset=0.10, insert=0.04, max_aperture=MAX_APERTURE):
     """Candidate for an explicit gripper orientation (e.g. the FK-achieved
     one), or None when the fingers or the body do not fit there."""
     top = rot[2, 0] < -0.7
     return _candidate(np.asarray(obj, float).reshape(-1, 3),
                       np.asarray(scene, float).reshape(-1, 3), rot,
-                      'top' if top else 'side', pregrasp_offset, 0.03 if top else 0.04)
+                      'top' if top else 'side', pregrasp_offset, 0.03 if top else insert,
+                      max_aperture=max_aperture)
 
 
 def outside_gripper(points, grasp_center, half_width=0.075, half_height=0.05,

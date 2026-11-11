@@ -3,7 +3,8 @@ import yaml
 from pathlib import Path
 from importlib.util import find_spec
 
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import (PackageNotFoundError, get_package_prefix,
+                                         get_package_share_directory)
 from launch import LaunchDescription
 from launch.actions import (DeclareLaunchArgument, ExecuteProcess, GroupAction,
                             IncludeLaunchDescription, OpaqueFunction,
@@ -18,10 +19,28 @@ NAVIGATION_FOOTPRINT = (
     '[-0.30, -0.24], [-0.30, 0.24]]')
 
 
+def plugin_installed(plugin):
+    """True when the package of a 'pkg::Class' or 'pkg/Class' plugin is installed."""
+    package = plugin.replace('::', '/').split('/')[0]
+    try:
+        get_package_prefix(package)
+        return True
+    except PackageNotFoundError:
+        return False
+
+
 def configure_nav2(nav2_data, pointcloud_topic=None):
     """Apply the measured stowed envelope and split local/global sensing."""
     for costmap in ('local_costmap', 'global_costmap'):
         params = nav2_data[costmap][costmap]['ros__parameters']
+        # A layer whose plugin package is missing stops the costmap from
+        # configuring; Nav2 then reports ERROR on /diagnostics and the
+        # executor (fail-closed on any ERROR) refuses to move the arm.
+        for layer in list(params.get('plugins', [])):
+            plugin = params.get(layer, {}).get('plugin', '')
+            if plugin and not plugin_installed(plugin):
+                params['plugins'].remove(layer)
+                print(f'[bringup] {costmap}: dropped layer {layer!r}, plugin {plugin} not installed')
         params['footprint'] = NAVIGATION_FOOTPRINT
         params['footprint_padding'] = 0.01
         params['transform_tolerance'] = 0.3
@@ -103,6 +122,9 @@ def setup(context):
     sim = LaunchConfiguration('sim').perform(context).lower() == 'true'
     scenario = LaunchConfiguration('scenario').perform(context)
     small_house = sim and scenario == 'small_house'
+    # MuJoCo stretch_mujoco_driver: same ROS interface as the real driver, so it
+    # takes the robot path below with sim time, domain 20 and no hardware nodes.
+    mujoco = sim and scenario == 'mujoco'
     rviz = LaunchConfiguration('rviz').perform(context).lower() == 'true'
     dry_run = LaunchConfiguration('dry_run').perform(context).lower() == 'true'
     octomap_enabled = LaunchConfiguration('octomap_enabled').perform(context).lower() == 'true'
@@ -125,9 +147,11 @@ def setup(context):
     if not collision_environment:
         collision_environment = 'primitive' if sim else 'octomap'
     perception_enabled = octomap_enabled or collision_environment == 'octomap'
-    grasp_mission = (not sim and
+    grasp_mission = ((not sim or mujoco) and
                      LaunchConfiguration('grasp_mission').perform(context).lower() == 'true')
-    if small_house:
+    if mujoco:
+        start_robot_driver = start_robot_camera = start_robot_lidar = False
+    if small_house or mujoco:
         collision_environment = 'octomap'
         perception_enabled = True
     
@@ -137,7 +161,9 @@ def setup(context):
     else:
         execution_enabled = execution_enabled_str.lower() == 'true'
 
-    use_sim_time = bool(sim and (perception_enabled or small_house))
+    # The MuJoCo driver stamps every message with wall time (its /clock is not
+    # used for stamps), so that scenario runs on wall time like the robot.
+    use_sim_time = bool(sim and not mujoco and (perception_enabled or small_house))
 
     meshes = ''
     spec = find_spec('stretch_urdf')
@@ -149,11 +175,12 @@ def setup(context):
     common_config = str(share / 'config' / 'common.yaml')
     sim_config = str(share / 'config' / 'sim.yaml')
     real_config = str(share / 'config' / 'real.yaml')
+    mujoco_config = str(share / 'config' / 'mujoco.yaml')
     perception_config = str(share / 'config' / 'perception.yaml')
 
     actions = []
 
-    if sim:
+    if sim and not mujoco:
         actions.append(SetEnvironmentVariable('ROS_DOMAIN_ID', '20'))
         actions.append(SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '1'))
         
@@ -327,8 +354,8 @@ def setup(context):
                 }]))
 
     else:
-        actions.append(SetEnvironmentVariable('ROS_DOMAIN_ID', '42'))
-        actions.append(SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '0'))
+        actions.append(SetEnvironmentVariable('ROS_DOMAIN_ID', '20' if mujoco else '42'))
+        actions.append(SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '1' if mujoco else '0'))
 
         stretch_core_share = None
         if start_robot_driver or start_robot_camera or (start_nav2 and start_robot_lidar):
@@ -377,6 +404,49 @@ def setup(context):
             with open(nav2_params_path, encoding='utf-8') as stream:
                 nav2_data = yaml.safe_load(stream)
             configure_nav2(nav2_data, pointcloud_topic)
+            if mujoco:
+                # The map is generated from the scene, so it is exact. Scans in the
+                # map frame crashed planner_server (uncaught tf2 extrapolation when
+                # a scan predates the first map->odom); the local costmap still
+                # sees live obstacles in odom.
+                g = nav2_data['global_costmap']['global_costmap']['ros__parameters']
+                g['plugins'] = [l for l in g['plugins'] if l not in ('obstacle_layer', 'voxel_layer')]
+                # Sim odometry is the ground-truth base pose in the world frame and the
+                # map is generated in that frame, so map->odom is exactly identity.
+                # AMCL published it at ~1 Hz under this load (Nav2 TF extrapolation
+                # errors); a static identity replaces it. Localization is not tested.
+                nav2_data['amcl']['ros__parameters']['tf_broadcast'] = False
+                # object_localizer needs RealSense-style registered depth (16UC1 mm).
+                actions.append(Node(package='stretch_custom_manipulation',
+                                    executable='sim_aligned_depth.py', name='sim_aligned_depth',
+                                    output='screen'))
+                # DWB oscillated at the 1 m doorways (sim runs at ~0.56x real time,
+                # velocities lag): Regulated Pure Pursuit, sim-sized inflation
+                # (Hello Robot suggests 0.2 m for indoor sim scenes), slack progress check.
+                c = nav2_data['controller_server']['ros__parameters']
+                c['controller_frequency'] = 10.0
+                c['progress_checker'].update(required_movement_radius=0.15, movement_time_allowance=30.0)
+                c['general_goal_checker'].update(xy_goal_tolerance=0.08, yaw_goal_tolerance=0.12)
+                c['FollowPath'] = {
+                    'plugin': 'nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController',
+                    'desired_linear_vel': 0.2, 'lookahead_dist': 0.4, 'min_lookahead_dist': 0.25,
+                    'max_lookahead_dist': 0.6, 'use_velocity_scaled_lookahead_dist': False,
+                    'use_rotate_to_heading': True, 'rotate_to_heading_min_angle': 0.6,
+                    'rotate_to_heading_angular_vel': 0.6, 'max_angular_accel': 1.5,
+                    'allow_reversing': False, 'use_collision_detection': True,
+                    'max_allowed_time_to_collision_up_to_carrot': 1.0,
+                    'use_regulated_linear_velocity_scaling': True,
+                    'use_cost_regulated_linear_velocity_scaling': False,
+                    'regulated_linear_scaling_min_radius': 0.6, 'regulated_linear_scaling_min_speed': 0.05,
+                    'transform_tolerance': 0.3}
+                # Global: wide, gentle cost slope so paths run mid-doorway; local:
+                # tight, so the controller's footprint check does not see the door.
+                for cm, radius, scaling in (('local_costmap', 0.3, 6.0), ('global_costmap', 0.55, 4.0)):
+                    nav2_data[cm][cm]['ros__parameters']['inflation_layer'].update(
+                        inflation_radius=radius, cost_scaling_factor=scaling)
+                actions.append(Node(package='tf2_ros', executable='static_transform_publisher',
+                                    name='map_odom_ground_truth',
+                                    arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom']))
             if not use_slam:
                 # Start localized so the map frame (RViz fixed frame) exists at
                 # once; 2D Pose Estimate corrects it when the robot is elsewhere.
@@ -400,6 +470,8 @@ def setup(context):
             # publish to a topic nobody reads. Remap every Nav2 node.
             actions.append(GroupAction([
                 SetRemap(src='/cmd_vel', dst='/stretch/cmd_vel'),
+                # slam_toolbox reads /scan; the MuJoCo driver has only the filtered scan.
+                *([SetRemap(src='/scan', dst='/scan_filtered')] if mujoco else []),
                 IncludeLaunchDescription(
                     PythonLaunchDescriptionSource(str(
                         stretch_nav2_share / 'launch' / 'bringup_launch.py')),
@@ -436,6 +508,8 @@ def setup(context):
                                 'execution_enabled': ParameterValue(execution_enabled, value_type=bool),
                                 'collision_environment': collision_environment,
                                 'collision_planning.enabled': True,
+                                'use_sim_time': use_sim_time,
+                                'sim_bypass_hardware_checks': mujoco,
                             }],
                             remappings=[
                                 ('ik_preview/joint_states', '/ik_preview/joint_states'),
@@ -445,10 +519,13 @@ def setup(context):
         if grasp_mission:
             actions.append(Node(package='stretch_custom_manipulation',
                                 executable='gripper_bridge.py', name='gripper_bridge',
+                                parameters=[mujoco_config if mujoco else real_config,  # aperture calibration
+                                            {'use_sim_time': use_sim_time}],
                                 output='screen'))
             actions.append(Node(package='stretch_custom_manipulation',
                                 executable='object_localizer.py', name='object_localizer',
                                 prefix=LaunchConfiguration('perception_python'),
+                                parameters=[{'use_sim_time': use_sim_time}],
                                 output='screen'))
             # Continuous detection/tracking/OCR; reuse this bringup's camera.
             actions.append(IncludeLaunchDescription(
@@ -461,10 +538,17 @@ def setup(context):
                     'reference_frame': 'odom',
                     'python_executable': LaunchConfiguration('perception_python'),
                     'ocr_enabled': LaunchConfiguration('perception_ocr'),
+                    'use_sim_time': 'true' if use_sim_time else 'false',
+                    **({'override_config': str(share / 'config' / 'perception_mujoco.yaml')}
+                       if mujoco else {}),
                 }.items()))
             actions.append(Node(package='stretch_custom_manipulation',
                                 executable='grasp_mission.py', name='grasp_mission',
-                                parameters=[{'dry_run': ParameterValue(dry_run, value_type=bool)}],
+                                parameters=[mujoco_config if mujoco else real_config,  # max_aperture
+                                            {'dry_run': ParameterValue(dry_run, value_type=bool),
+                                             'use_sim_time': use_sim_time}],
+                                # The MuJoCo driver publishes only the filtered scan.
+                                remappings=[('/scan', '/scan_filtered')] if mujoco else [],
                                 output='screen'))
         elif start_nav2 and LaunchConfiguration(
                 'autonomous_mission').perform(context).lower() == 'true':
@@ -530,12 +614,12 @@ def setup(context):
                                 'input_cloud_topic': pointcloud_topic,
                                 'use_sim_time': use_sim_time,
                                 # Simulation fixtures have no /odom topic.
-                                'map_frame': 'base_link' if sim else 'odom',
+                                'map_frame': 'base_link' if sim and not mujoco else 'odom',
                             }]))
 
     if rviz:
         rviz_arguments = ['-d', str(share / 'rviz' / 'bringup.rviz')]
-        if not sim and start_nav2:
+        if (not sim or mujoco) and start_nav2:
             rviz_arguments += ['-f', 'map']
         actions.append(Node(package='rviz2', executable='rviz2', name='rviz',
                             arguments=rviz_arguments,
@@ -548,7 +632,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('sim', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('scenario', default_value='fixture',
-                              choices=['fixture', 'small_house']),
+                              choices=['fixture', 'small_house', 'mujoco']),
         DeclareLaunchArgument('rviz', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('dry_run', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('execution_enabled', default_value='', choices=['', 'true', 'false']),

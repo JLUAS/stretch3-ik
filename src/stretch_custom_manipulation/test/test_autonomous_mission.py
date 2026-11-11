@@ -472,6 +472,22 @@ def test_nav2_uses_stowed_footprint_and_local_depth_only():
     assert 'voxel_layer' not in global_
 
 
+def test_nav2_drops_costmap_layers_whose_plugin_is_not_installed(monkeypatch):
+    params = {'plugins': ['obstacle_layer', 'tracked', 'inflation_layer'],
+              'obstacle_layer': {'plugin': 'nav2_costmap_2d::ObstacleLayer'},
+              'tracked': {'plugin': 'stretch_palettes_costmap/TrackedObstacleLayer'},
+              'inflation_layer': {}}
+    data = {'controller_server': {'ros__parameters': {'FollowPath': {}}},
+            'local_costmap': {'local_costmap': {'ros__parameters': params}},
+            'global_costmap': {'global_costmap': {'ros__parameters': {
+                'plugins': ['inflation_layer'], 'inflation_layer': {}}}}}
+    monkeypatch.setattr(bringup, 'plugin_installed',
+                        lambda p: not p.startswith('stretch_palettes_costmap'))
+    bringup.configure_nav2(data)
+    assert 'tracked' not in params['plugins']
+    assert params['plugins'][0] == 'obstacle_layer' and 'inflation_layer' in params['plugins']
+
+
 def test_gazebo_target_is_movable_gravity_free_and_camera_masked():
     sdf = ET.parse(
         path.parents[1] / 'worlds' / 'approach_target.sdf').getroot()

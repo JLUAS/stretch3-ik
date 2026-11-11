@@ -1,5 +1,6 @@
 #include <action_msgs/msg/goal_status_array.hpp>
 #include <algorithm>
+#include <map>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 #include <diagnostic_msgs/msg/diagnostic_array.hpp>
@@ -80,6 +81,11 @@ class Executor : public stretch_robot_interface::InterfaceNode {
         immutable<double>(
             "pimu_temperature_warn_max_c",
             50.0);
+
+    diagnostic_policy_.wacc_error_can_warn =
+        immutable<bool>("wacc_error_can_warn", false);
+    diagnostic_policy_.wacc_ax_min = immutable<double>("wacc_ax_min", 6.0);
+    diagnostic_policy_.wacc_ax_max = immutable<double>("wacc_ax_max", 13.5);
 
     diagnostic_policy_.cliff_range_min =
         immutable<double>("cliff_range_min", -100.0);
@@ -291,13 +297,22 @@ class Executor : public stretch_robot_interface::InterfaceNode {
     diag_sub_ = create_subscription<diagnostic_msgs::msg::DiagnosticArray>(
         "/diagnostics", sensor,
         [this](diagnostic_msgs::msg::DiagnosticArray::ConstSharedPtr m) {
-          diag_ok_ = !m->status.empty();
-          diag_reason_.clear();
+          // Several nodes publish here (driver, Nav2, perception), each its
+          // complete status set per array. Keep the latest array per source,
+          // keyed by its first status's "<node>:" prefix: one source's OK must
+          // never overwrite another's ERROR. Fail-closed on any ERROR stays.
+          if (m->status.empty()) return;
+          const auto& first = m->status.front().name;
+          const std::string source = first.substr(0, first.find(':'));
+          std::string blocking, warnings;
           for (const auto& s : m->status) {
             const auto decision = diagnostic_policy_.classify(s);
             if (decision.blocking()) {
-              diag_ok_ = false;
-              diag_reason_ += s.name + ": " + s.message + "; ";
+              blocking += "BLOCKING: " + s.name + ": " + s.message + "; ";
+              RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 2000,
+                                    "Blocking diagnostic: name='%s' level=%u message='%s'",
+                                    s.name.c_str(), static_cast<unsigned>(s.level),
+                                    s.message.c_str());
             }
             if (decision.downgraded) {
               RCLCPP_WARN_THROTTLE(
@@ -310,10 +325,27 @@ class Executor : public stretch_robot_interface::InterfaceNode {
               // Keep the driver's raw message in the log above. The operator
               // status should describe the effective, calibrated policy so it
               // does not advertise the driver's legacy limits as active.
-              diag_reason_ += "WARN: " + s.name + ": " + decision.reason + "; ";
+              warnings += "WARN: " + s.name + ": " + decision.reason + "; ";
             }
           }
-          diag_time_ = steady();
+          const double now = steady();
+          diag_sources_[source] = {now, blocking, warnings};
+          diag_ok_ = true;
+          diag_reason_.clear();
+          warnings.clear();
+          for (auto it = diag_sources_.begin(); it != diag_sources_.end();) {
+            // A source silent for 2.5 s no longer speaks for the robot; the
+            // driver's own silence is caught by the freshness check below.
+            if (now - it->second.time > 2.5) { it = diag_sources_.erase(it); continue; }
+            if (!it->second.blocking.empty()) diag_ok_ = false;
+            diag_reason_ += it->second.blocking;
+            warnings += it->second.warnings;
+            ++it;
+          }
+          // Blocking causes first: status consumers truncate long reasons.
+          diag_reason_ += warnings;
+          // Fresh only while the driver itself reports.
+          if (source == "stretch_driver") diag_time_ = now;
         });
     action_status_ = create_subscription<action_msgs::msg::GoalStatusArray>(
         action_name_ + "/_action/status",
@@ -2394,6 +2426,8 @@ class Executor : public stretch_robot_interface::InterfaceNode {
   std::vector<Vector> planned_path_raw_, planned_path_simplified_;
   Vector preview_q_ = Vector::Zero(), status_q_ = Vector::Zero(),
          preview_seed_ = Vector::Zero(), max_tracking_error_ = Vector::Zero();
+  struct DiagSource { double time; std::string blocking, warnings; };
+  std::map<std::string, DiagSource> diag_sources_;
   std::string mode_ = "unknown", diag_reason_, report_path_, action_name_,
               octomap_topic_, lift_state_ = "DISARMED",
               planning_status_ = "collision_planning=uninitialized";

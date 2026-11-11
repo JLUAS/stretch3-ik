@@ -1,4 +1,5 @@
 import importlib.util
+import math
 from pathlib import Path
 
 import numpy as np
@@ -130,7 +131,8 @@ def test_tilted_side_grasp_reaches_as_deep_as_level_on_tall_object():
     by_key = {c['key']: c['grasp'][:3, 3] for c in gp.plan_grasps(obj, np.zeros((0, 3)))}
     level, tilted = by_key[('side', 0.0, 0.0)], by_key[('side', 0.0, -0.25)]
     np.testing.assert_allclose(tilted, level, atol=1e-9)
-    assert abs(level[1] - (-0.6645)) < 0.005  # at the box's depth center
+    # Fingertips 4 cm past the near face (-0.648), grasp center FINGERTIP_BEHIND further.
+    assert abs(level[1] - (-0.648 - 0.04 - gp.FINGERTIP_BEHIND)) < 0.005
 
 
 def test_real_shelf_scene_from_robot_gets_a_side_grasp():
@@ -141,3 +143,41 @@ def test_real_shelf_scene_from_robot_gets_a_side_grasp():
     assert cands and cands[0]['key'] == ('side', 0.0, 0.0)
     lo, hi = d['object'].min(0), d['object'].max(0)
     assert lo[2] + gp.FINGER_HALF_HEIGHT + 0.015 - 1e-9 <= cands[0]['grasp'][2, 3] < hi[2]
+
+
+def box(cx, near_y, w=0.06, d=0.03, z0=1.0, h=0.12, yaw=0.0):
+    """Front face and top of a box as the head camera sees it, turned by yaw."""
+    xs, zs = np.meshgrid(np.linspace(-w / 2, w / 2, 15), np.linspace(z0, z0 + h, 20))
+    front = np.column_stack([xs.ravel(), np.zeros(xs.size), zs.ravel()])
+    xt, yt = np.meshgrid(np.linspace(-w / 2, w / 2, 15), np.linspace(-d, 0, 8))
+    top = np.column_stack([xt.ravel(), yt.ravel(), np.full(xt.size, z0 + h)])
+    pts = np.vstack([front, top])
+    c, s = math.cos(yaw), math.sin(yaw)
+    pts[:, :2] = pts[:, :2] @ np.array([[c, s], [-s, c]])
+    return pts + [cx, near_y, 0.0]
+
+
+def test_fingertips_reach_insert_past_the_near_face():
+    # 2026-11-06 on the robot: the center was 3 cm in, the tips (1.7 cm behind
+    # it) only touched the front edge and the fingers closed on nothing.
+    for insert in (0.03, 0.04, 0.05):
+        g = [c for c in gp.plan_grasps(box(0.0, -0.55), np.zeros((0, 3)), insert=insert)
+             if c['key'] == ('side', 0.0, 0.0)][0]['grasp']
+        tips_y = g[1, 3] + gp.FINGERTIP_BEHIND
+        assert abs(tips_y - (-0.55 - insert)) < 1e-6
+
+
+def test_wrist_turns_to_a_rotated_box_but_approach_stays_straight():
+    for deg in (-15.0, 0.0, 12.0):
+        obj = box(0.0, -0.55, yaw=math.radians(deg))
+        assert abs(math.degrees(gp.object_yaw(obj)) - deg) <= 1.0
+        c = [c for c in gp.plan_grasps(obj, np.zeros((0, 3))) if c['key'] == ('side', 0.0, 0.0)][0]
+        fingers = c['grasp'][:3, 1]
+        assert abs(math.degrees(math.atan2(fingers[1], fingers[0])) - deg) <= 1.0
+        # Pre-grasp to grasp is a pure move along the arm: same x, same wrist yaw.
+        assert abs(c['pregrasp'][0, 3] - c['grasp'][0, 3]) < 1e-9
+        np.testing.assert_allclose(c['pregrasp'][:3, :3], c['grasp'][:3, :3])
+
+
+def test_round_objects_are_not_turned():
+    assert gp.object_yaw(can(0.0, -0.6)) == 0.0

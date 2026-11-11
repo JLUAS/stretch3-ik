@@ -393,8 +393,17 @@ class MockDriver(Node):
             if m is not None and not obj['held']:
                 p = (np.linalg.inv(m) @ np.append(self.obj_odom(), 1.0))[:3]
                 info = {'object_in_tcp': p.round(4).tolist(), 'aperture': start}
-                inside = (abs(p[1]) + obj['r'] <= start / 2 + 0.002 and
-                          abs(p[0]) <= 0.6 * obj['r'] + 0.01 and abs(p[2]) <= obj['h'] / 2 - 0.01)
+                # Captured when it sits between the finger pads: the tips (URDF:
+                # ~1.7 cm short of link_grasp_center) must reach past its widest
+                # line, and it must be in front of the gripper body.
+                if m[2, 0] < -0.7:  # top-down: the can's axis runs along the approach
+                    inside = (abs(p[1]) + obj['r'] <= start / 2 + 0.002 and
+                              abs(p[2]) <= obj['r'] and
+                              p[0] - obj['h'] / 2 <= -0.017 - 0.01)  # tips 1 cm below its top
+                else:
+                    inside = (abs(p[1]) + obj['r'] <= start / 2 + 0.002 and
+                              -0.12 <= p[0] <= -0.017 + 0.3 * obj['r'] and
+                              abs(p[2]) <= obj['h'] / 2 - 0.01)
                 if inside and not self.faults.get('gripper_stuck'):
                     stop_at = 2 * obj['r']
                     with self.lock:

@@ -10,12 +10,12 @@ import cv2
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
 from rcl_interfaces.msg import ParameterDescriptor, SetParametersResult
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import Point
-from std_msgs.msg import String, Header
+from std_msgs.msg import Bool, String, Header
 from std_srvs.srv import Trigger
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from tf2_ros import Buffer, TransformListener, TransformException
@@ -65,6 +65,9 @@ class PerceptionNode(Node):
         self.settings = {
             'segmentation.max_depth': 1.1, 'segmentation.plane_min_inliers': 300,
             'segmentation.max_object_footprint': .20,
+            # Pixel counts scale with resolution: 500 is for 848x480 (the robot);
+            # a 424x240 stream (MuJoCo sim) needs about a quarter.
+            'segmentation.min_object_pixels': 500, 'segmentation.split_min_child_pixels': 500,
             'appearance.features': 120, 'persistence.probation_period': 1.,
             'persistence.forget_after': 30., 'persistence.match_distance': .12,
             'persistence.continuity_distance': .06,
@@ -109,6 +112,15 @@ class PerceptionNode(Node):
         self.objects_pub = self.create_publisher(TrackedObjectArray, '/perception/objects', 1)
         self.diagnostic_pub = self.create_publisher(DiagnosticArray, '/diagnostics', 1)
         self.create_service(Trigger, '/perception/reset', self.reset)
+        # Pause switch: while false the node keeps running but processes and
+        # publishes nothing (the grasp mission pauses it while the arm works).
+        latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.enabled = self.declare_parameter('enabled', True).value
+        self.enabled_pub = self.create_publisher(Bool, '/perception/enabled', latched)
+        # Volatile on purpose: the mission and the panel both publish latched
+        # commands, and a restarted node would replay both in no fixed order.
+        self.create_subscription(Bool, '/perception/enable', self.on_enable, 10)
+        self.enabled_pub.publish(Bool(data=self.enabled))
         self.create_timer(1 / 30, self.tick)
         self.create_timer(1., self.diagnostics)
         cv2.setNumThreads(1)
@@ -260,7 +272,19 @@ class PerceptionNode(Node):
             self.answer(request, None, str(exc))
         self.pending.popleft()
 
+    def on_enable(self, msg):
+        if msg.data != self.enabled:
+            self.enabled = msg.data
+            self.state['status'] = 'tracking' if msg.data else 'paused'
+            self.get_logger().info('Perception ' + ('resumed' if msg.data else 'paused'))
+        self.enabled_pub.publish(Bool(data=self.enabled))
+
     def tick(self):
+        if not self.enabled:
+            # Every prompt still gets exactly one answer, at once.
+            while self.pending:
+                self.answer(self.pending.popleft(), None, 'perception paused')
+            return
         if self.pending:
             self.handle_prompt()
             return

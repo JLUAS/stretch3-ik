@@ -43,7 +43,7 @@ statuses = []
 node.create_subscription(String, '/guarded_executor/status', lambda m: statuses.append(m.data), retained)
 fixture = {'preview_ok': True, 'preview_delta': .005, 'publish_state': True,
            'publish_diagnostics': True, 'diagnostic_level': DiagnosticStatus.ERROR,
-           'extra_diagnostic': None, 'goal_statuses': None}
+           'extra_diagnostic': None, 'goal_statuses': None, 'other_source_ok': False}
 if not args.live:
     goal_requests = []
     def reject_goal(request):
@@ -88,6 +88,9 @@ if not args.live:
             d.status.append(DiagnosticStatus(level=DiagnosticStatus.ERROR,
                                             name=fixture['extra_diagnostic'], message='test fault'))
         if fixture['publish_diagnostics']: dp.publish(d)
+        if fixture['other_source_ok']:  # e.g. perception, publishing after the driver
+            dp.publish(DiagnosticArray(header=d.header, status=[DiagnosticStatus(
+                level=DiagnosticStatus.OK, name='rgbd_perception', message='tracked')]))
         if fixture['goal_statuses'] is not None:
             status_array = GoalStatusArray()
             status_array.status_list = [GoalStatus(status=value) for value in fixture['goal_statuses']]
@@ -212,6 +215,10 @@ with tempfile.TemporaryDirectory(prefix='stretch-guard-dry-') as temp, open(log_
                           'stretch_controller: follow_joint_trajectory']:
                 fixture['extra_diagnostic'] = fault; spin(.2)
                 assert not call('validate_preview').success, fault + ' ignored'
+            # Another node's OK array must not hide the driver's ERROR.
+            fixture['other_source_ok'] = True
+            fixture['extra_diagnostic'] = 'stretch_driver: Lift/Motor'; spin(.2)
+            assert not call('validate_preview').success, 'driver ERROR hidden by another source'
             fixture['extra_diagnostic'] = None
             fixture['diagnostic_level'] = DiagnosticStatus.STALE; spin(.2)
             assert not call('validate_preview').success, 'STALE cliff status downgraded'

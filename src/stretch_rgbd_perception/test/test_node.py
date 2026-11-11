@@ -117,5 +117,22 @@ class NodeTests(unittest.TestCase):
         self.assertEqual(obj.visible_points,20)
         self.assertEqual(obj.size.z,0.)
 
+    def test_paused_node_processes_nothing_and_still_answers_every_prompt(self):
+        from std_msgs.msg import Bool
+        states=[];self.node.enabled_pub=NS(publish=states.append)
+        published=[];self.node.objects_pub=NS(publish=published.append)
+        self.node.on_enable(Bool(data=False))
+        self.assertFalse(self.node.enabled);self.assertFalse(states[-1].data)
+        self.node.color=self.color()
+        self.node.on_prompt(Point(x=1.,y=1.));self.node.on_prompt(Point(x=2.,y=2.))
+        self.node.colors.append(self.node.color)
+        with patch.object(self.node,'handle_prompt') as handle, patch.object(self.node,'depth_for') as depth:
+            self.node.tick()
+        handle.assert_not_called();depth.assert_not_called()
+        self.assertEqual([a.reason for a in self.answers],['perception paused']*2)
+        self.assertEqual(len(self.node.pending),0);self.assertEqual(published,[])
+        self.node.on_enable(Bool(data=True))
+        self.assertTrue(self.node.enabled);self.assertTrue(states[-1].data)
+
 
 if __name__=='__main__':unittest.main()

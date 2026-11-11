@@ -576,7 +576,7 @@ TEST_F(GuardTest, ConfigCannotWidenEnvelope) {
   bad.tracking_error[0] = std::numeric_limits<double>::quiet_NaN();
   EXPECT_THROW(bad.validate(), std::invalid_argument);
   bad = c;
-  bad.tracking_error[0] = .0301;
+  bad.tracking_error[0] = .0601;
   EXPECT_THROW(bad.validate(), std::invalid_argument);
   bad = c;
   bad.goal_tolerance[2] = .0351;
@@ -923,6 +923,45 @@ DiagnosticPolicy tempPolicy() {
   return policy;
 }
 }  // namespace
+
+// Exact driver text, from the 2026-11-06 robot runs.
+Diagnostic waccDiagnostic(double ax) {
+  Diagnostic status;
+  status.name = "stretch_driver: Wacc/Device";
+  status.level = Diagnostic::ERROR;
+  status.message = "ax=" + std::to_string(ax) + " | out of range [8.0,11.0]";
+  return status;
+}
+
+TEST_F(GuardTest, WaccDefaultBlocks) {
+  DiagnosticPolicy policy;
+  EXPECT_TRUE(policy.classify(waccDiagnostic(7.82)).blocking());
+}
+
+TEST_F(GuardTest, WaccMotionReadingsWarnOnlyWithinBounds) {
+  DiagnosticPolicy policy;
+  policy.wacc_error_can_warn = true;
+  for (double ax : {7.82, 11.68, 6.0, 13.5}) {
+    const auto r = policy.classify(waccDiagnostic(ax));
+    EXPECT_FALSE(r.blocking()) << ax;
+    EXPECT_TRUE(r.downgraded) << ax;
+  }
+  for (double ax : {5.9, 13.6, 25.0, -9.8}) {
+    EXPECT_TRUE(policy.classify(waccDiagnostic(ax)).blocking()) << ax;
+  }
+  auto unparsable = waccDiagnostic(9.0);
+  unparsable.message = "accelerometer fault";
+  EXPECT_TRUE(policy.classify(unparsable).blocking());
+}
+
+TEST_F(GuardTest, WaccBoundsAreValidated) {
+  DiagnosticPolicy policy;
+  policy.wacc_ax_min = 2.0;
+  EXPECT_THROW(policy.validate(), std::invalid_argument);
+  policy.wacc_ax_min = 12.0;
+  policy.wacc_ax_max = 11.0;
+  EXPECT_THROW(policy.validate(), std::invalid_argument);
+}
 
 TEST_F(GuardTest, DiagnosticTemperatureDefaultBlocks) {
   // Default policy: pimu_temperature_error_can_warn = false

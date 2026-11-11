@@ -246,6 +246,8 @@ def geometry_node(obj):
     n = SimpleNamespace(max_approach_error=0.05, max_approach_change=0.03, max_finger_error=0.10,
                         offset=0.10, object_base=obj)
     n.scene_base = lambda: np.zeros((0, 3))
+    n.insert = lambda: 0.04
+    n.max_open = lambda: gp.MAX_APERTURE
     return n
 
 
@@ -284,7 +286,29 @@ def mission_node(pick, stopped=True):
     n.result = lambda *a, **k: M.result(n, *a, **k)
     n.pick = lambda: pick(n)
     n.safe_stop = lambda why: (n.event('safe_stop', why=why), stopped)[1]
+    n.perception = lambda on: n.event('perception', enabled=on)
     return n
+
+
+@pytest.mark.parametrize('pick', [lambda n: (n.event('picking'), 'object held at 6.6 cm')[1],
+                                  lambda n: (n.event('picking'), (_ for _ in ()).throw(
+                                      gm.MissionError('IK_FAILED', 'unreachable')))])
+def test_perception_is_paused_for_the_whole_mission_and_resumed_after(pick):
+    n = mission_node(pick)
+    M.run_mission(n, 'm1', None)
+    seq = [(e, kw.get('enabled')) for e, kw in n.event.events if e in ('perception', 'picking', 'result')]
+    assert seq == [('perception', False), ('picking', None), ('result', None), ('perception', True)]
+
+
+def test_perception_switch_publishes_only_when_enabled():
+    sent = []
+    n = SimpleNamespace(pause_perception=True, event=Recorder(),
+                        perception_pub=SimpleNamespace(publish=lambda m: sent.append(m.data)))
+    M.perception(n, False)
+    M.perception(n, True)
+    n.pause_perception = False
+    M.perception(n, False)
+    assert sent == [False, True]
 
 
 def test_failure_after_motion_stops_and_ends_exactly_once():
@@ -339,8 +363,9 @@ def test_unreachable_hint_says_which_way_to_park():
 
 def test_click_starts_a_mission_only_when_a_grasp_is_planned():
     started = []
-    n = SimpleNamespace(reobs_wait=None, active=None, auto_start=True, event=Recorder(),
-                        candidates=[1, 2])
+    n = SimpleNamespace(reobs_wait=None, active=None, event=Recorder(),
+                        candidates=[1, 2],
+                        get_parameter=lambda name: SimpleNamespace(value=name == 'auto_start'))
     n.say = lambda t: n.event('say', text=t)
     n.publish_result = lambda r: None
     n.result = lambda *a, **k: M.result(n, *a, **k)

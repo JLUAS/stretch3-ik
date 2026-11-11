@@ -105,7 +105,7 @@ def test_matrix_from_transform_maps_source_points_into_target():
                                [[1.0, 3.0, 3.0]], atol=1e-12)
 
 
-def test_grasp_from_rendered_view_hits_the_can_axis():
+def test_grasp_from_rendered_view_puts_the_fingertips_4cm_into_the_can():
     """Residual budget of perception -> grasp with a perfect camera model."""
     pose = camera_pose()
     depth, mask = render(pose)
@@ -113,7 +113,10 @@ def test_grasp_from_rendered_view_hits_the_can_axis():
     best = gp.plan_grasps(obj, np.zeros((0, 3)))[0]
     g = best['grasp'][:3, 3]
     lateral = abs(g[0] - CAN['c'][0])          # along the finger axis
-    along = abs(g[1] - CAN['c'][1])            # along the approach
+    # Along the approach (-y): the fingertips, FINGERTIP_BEHIND short of the
+    # grasp center, reach 4 cm (default insert) past the can's true near face.
+    tips = g[1] + gp.FINGERTIP_BEHIND
+    along = abs(tips - (CAN['c'][1] + CAN['r'] - 0.04))
     vertical = abs(g[2] - CAN['c'][2])
     print(f'grasp residual: lateral {lateral * 1000:.1f} mm, approach {along * 1000:.1f} mm, '
           f'vertical {vertical * 1000:.1f} mm, width {best["width"] * 1000:.1f} mm')

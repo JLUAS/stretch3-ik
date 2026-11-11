@@ -12,7 +12,6 @@ import numpy as np
 from rgbd.detection.appearance import RGBObjectAppearance, compare
 from rgbd.pose.board import BoardPoseEstimator
 from rgbd.pose.filter import PoseFilter
-from rgbd.sources.db3 import RealSenseReader
 from rgbd.demos.common import demo_parser, run_demo
 from rgbd.detection.tabletop import TabletopSegmenter
 
@@ -58,6 +57,9 @@ def main(stage='appearance'):
     if args.probation is None:
         args.probation = 0. if stage == 'classification' else 1.
     cv2.setNumThreads(1)
+    # Imported here like the other demos: the ROS node imports draw() from this
+    # module and must not need rosbags.
+    from rgbd.sources.db3 import RealSenseReader
     with ExitStack() as stack:
         source = stack.enter_context(RealSenseReader(args.bag, rotations=args.rotations))
         estimator, smoother = BoardPoseEstimator(source.calibration.color), PoseFilter()

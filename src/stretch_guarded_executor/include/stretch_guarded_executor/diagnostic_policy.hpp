@@ -37,6 +37,14 @@ struct DiagnosticPolicy {
   double cliff_range_min = -100.0;
   double cliff_range_max = 200.0;
 
+  // Bounded exception for the wrist accelerometer check. The driver flags
+  // `ax` outside [8, 11] m/s^2 even while the arm accelerates (measured 7.8
+  // and 11.7 during normal lift/arm moves); readings within these bounds are
+  // motion, beyond them (impact, fall) still block.
+  bool wacc_error_can_warn = false;
+  double wacc_ax_min = 6.0;
+  double wacc_ax_max = 13.5;
+
   void validate() const;
 
   DiagnosticDecision classify(

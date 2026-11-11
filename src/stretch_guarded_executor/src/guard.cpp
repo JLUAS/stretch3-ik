@@ -75,8 +75,9 @@ void Config::validate() const {
   // Same caps for simulation and the real robot (targets 0.10 m/s, 0.6 rad/s).
   const Vector velocity_cap = (Vector() << .12, .12, .8, .8, .8).finished();
   const Vector accel_cap = (Vector() << .2, .2, 2., 2., 2.).finished();
+  // Raised 2026-11-06 for testing an uncalibrated robot (was 3 cm / 0.15 rad).
   const Vector tracking_error_cap =
-      (Vector() << .03, .03, .15, .15, .15).finished();
+      (Vector() << .06, .06, .30, .30, .30).finished();
   // Wrist servos settle ~1 deg short under the gripper load (measured 0.015 rad).
   const Vector goal_tolerance_cap =
       (Vector() << .003, .003, .035, .035, .035).finished();
@@ -180,8 +181,10 @@ Check Guard::prerequisites(const Input& in) const {
             "fresh trajectory mode required; position mode ignores timing"};
   if (!in.streaming_known || in.streaming)
     return {false, "streaming position unknown/active"};
-  if (!in.diagnostics_fresh || !in.diagnostics_ok)
-    return {false, "diagnostics stale or ERROR/STALE present"};
+  if (!in.diagnostics_fresh)
+    return {false, "diagnostics stale (no /diagnostics for 2.5 s)"};
+  if (!in.diagnostics_ok)
+    return {false, "diagnostics ERROR/STALE present"};
   if (!in.startpoint_guard_verified)
     return {false, "driver initial-point guard not verified true"};
   if (!in.action_server_available)

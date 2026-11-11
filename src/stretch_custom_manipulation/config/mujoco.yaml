@@ -1,0 +1,13 @@
+# MuJoCo house (bringup scenario:=mujoco), loaded instead of real.yaml by the
+# gripper bridge and the grasp mission. The simulated gripper follows the
+# driver's aperture model, so there is no calibration table (real.yaml has the
+# measured one). The executor keeps real.yaml limits plus sim time and bypass.
+/grasp_mission:
+  ros__parameters:
+    max_aperture: 0.13
+    # Sim odometry never jumps, so the OctoMap is not reset on mode switches as
+    # on the robot and keeps the object's own voxels (2 cm cells): a 10 cm
+    # pre-grasp put the gripper in them (2026-11-10), and a 1 cm box margin
+    # left the voxel on the object's near face.
+    pregrasp_offset: 0.15
+    target_box_margin: 0.06

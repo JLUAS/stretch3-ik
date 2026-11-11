@@ -1,0 +1,115 @@
+<!--
+Semi-structured house for the semantic grasp experiments (docs/SEMANTIC_GRASP_PLAN.md).
+Load it through a symlink inside stretch_mujoco/stretch_mujoco/models/ (see run_house_sim.sh):
+stretch.xml resolves its meshes relative to the main file's directory.
+
+Layout, world frame, metres. Robot starts at the origin facing +x.
+  bedroom      x -4.0 .. -1.5   bed, desk, nightstand
+  living room  x -1.5 ..  2.0   coffee table, shelf
+  kitchen      x  2.0 ..  4.0   counter on the east wall, table
+Doorways are 1.4 m wide at y -0.7 .. 0.7 in both interior walls (1.0 m was too
+tight for Nav2 with the 0.48 m wide Stretch footprint).
+Object names are the ground truth for evaluation; the robot never reads them.
+-->
+<mujoco model="stretch3ik house">
+  <include file="stretch.xml"/>
+
+  <statistic center="0 0 .75" extent="4" meansize="0.05"/>
+
+  <visual>
+    <headlight diffuse="0.5 0.5 0.5" ambient="0.35 0.35 0.35" specular="0 0 0"/>
+    <global azimuth="-120" elevation="-35" offwidth="1280" offheight="960"/>
+    <quality shadowsize="2048"/>
+  </visual>
+
+  <asset>
+    <texture type="2d" name="wood" file="wood.png"/>
+    <material name="wood" texture="wood"/>
+    <texture type="2d" name="floor_tex" builtin="checker" rgb1=".55 .5 .45" rgb2=".5 .45 .4" width="512" height="512"/>
+    <material name="floor" texture="floor_tex" texrepeat="16 12" reflectance="0.05"/>
+    <texture type="2d" name="tile_tex" builtin="checker" rgb1=".85 .85 .82" rgb2=".75 .75 .72" width="256" height="256"/>
+    <material name="tile" texture="tile_tex" texrepeat="10 15"/>
+    <material name="wall" rgba=".88 .86 .8 1"/>
+    <material name="counter" rgba=".3 .32 .35 1"/>
+    <material name="counter_top" rgba=".92 .92 .9 1"/>
+    <material name="fabric" rgba=".35 .45 .6 1"/>
+    <material name="dark_wood" rgba=".35 .22 .12 1"/>
+    <texture type="skybox" builtin="gradient" rgb1="0.44 0.80 1.00" rgb2="1 1 1" width="512" height="3072"/>
+  </asset>
+
+  <default>
+    <default class="static">
+      <geom type="box" contype="1" conaffinity="1" group="0"/>
+    </default>
+    <default class="item">
+      <geom friction="1.5 0.02 0.002" condim="4" solref="0.01 1" group="0"/>
+    </default>
+  </default>
+
+  <worldbody>
+    <light pos="0 0 3" dir="0 0 -1" directional="true" diffuse=".5 .5 .5"/>
+    <light pos="3 0 2.2" dir="0 0 -1" diffuse=".4 .4 .4" castshadow="false"/>
+    <light pos="-2.8 0 2.2" dir="0 0 -1" diffuse=".4 .4 .4" castshadow="false"/>
+
+    <geom name="floor" type="plane" size="4 3 0.05" material="floor"/>
+    <geom name="kitchen_floor" type="box" size="1 3 0.001" pos="3 0 0.001" material="tile" contype="0" conaffinity="0"/>
+
+    <!-- Outer walls -->
+    <geom class="static" name="wall_n" size="4.1 0.05 0.6" pos="0 3.05 0.6" material="wall"/>
+    <geom class="static" name="wall_s" size="4.1 0.05 0.6" pos="0 -3.05 0.6" material="wall"/>
+    <geom class="static" name="wall_e" size="0.05 3 0.6" pos="4.05 0 0.6" material="wall"/>
+    <geom class="static" name="wall_w" size="0.05 3 0.6" pos="-4.05 0 0.6" material="wall"/>
+    <!-- Kitchen / living wall at x=2, doorway y -0.7..0.7 -->
+    <geom class="static" name="wall_k_n" size="0.05 1.15 0.6" pos="2 1.85 0.6" material="wall"/>
+    <geom class="static" name="wall_k_s" size="0.05 1.15 0.6" pos="2 -1.85 0.6" material="wall"/>
+    <!-- Bedroom / living wall at x=-1.5, doorway y -0.7..0.7 -->
+    <geom class="static" name="wall_b_n" size="0.05 1.15 0.6" pos="-1.5 1.85 0.6" material="wall"/>
+    <geom class="static" name="wall_b_s" size="0.05 1.15 0.6" pos="-1.5 -1.85 0.6" material="wall"/>
+
+    <!-- Kitchen: counter along the east wall (top 0.90 m), table (top 0.74 m) -->
+    <geom class="static" name="kitchen_counter" size="0.3 1.2 0.44" pos="3.7 0 0.44" material="counter"/>
+    <geom class="static" name="kitchen_counter_top" size="0.31 1.21 0.01" pos="3.69 0 0.89" material="counter_top"/>
+    <geom class="static" name="kitchen_table" size="0.4 0.4 0.37" pos="2.9 -2.1 0.37" material="wood"/>
+
+    <!-- Living room: coffee table (top 0.44 m), shelf on the south wall (lower top 0.60 m, board 1.05 m) -->
+    <geom class="static" name="coffee_table" size="0.4 0.25 0.22" pos="0.5 2.1 0.22" material="wood"/>
+    <geom class="static" name="sofa" size="0.9 0.3 0.22" pos="0.5 2.65 0.22" material="fabric"/>
+    <geom class="static" name="shelf_base" size="0.5 0.18 0.3" pos="-0.5 -2.82 0.3" material="dark_wood"/>
+    <geom class="static" name="shelf_side_w" size="0.02 0.18 0.24" pos="-0.98 -2.82 0.84" material="dark_wood"/>
+    <geom class="static" name="shelf_side_e" size="0.02 0.18 0.24" pos="-0.02 -2.82 0.84" material="dark_wood"/>
+    <geom class="static" name="shelf_board" size="0.5 0.18 0.015" pos="-0.5 -2.82 1.065" material="dark_wood"/>
+
+    <!-- Bedroom: bed, desk (top 0.74 m), nightstand (top 0.60 m) -->
+    <geom class="static" name="bed" size="0.7 1.0 0.25" pos="-3.25 -1.9 0.25" material="fabric"/>
+    <geom class="static" name="desk" size="0.5 0.3 0.37" pos="-2.4 2.7 0.37" material="wood"/>
+    <geom class="static" name="nightstand" size="0.22 0.22 0.3" pos="-3.7 -0.5 0.3" material="dark_wood"/>
+
+    <!-- Graspable objects (free bodies) -->
+    <body name="red_mug" pos="3.55 -0.6 0.946">
+      <freejoint/>
+      <geom class="item" type="cylinder" size="0.03 0.045" mass="0.15" rgba=".8 .1 .1 1"/>
+      <geom class="item" type="box" size="0.012 0.004 0.025" pos="0.038 0 0" mass="0.01" rgba=".8 .1 .1 1"/>
+    </body>
+    <body name="green_bottle" pos="3.55 0.5 1.0">
+      <freejoint/>
+      <geom class="item" type="cylinder" size="0.025 0.08" mass="0.12" rgba=".1 .6 .2 1"/>
+      <geom class="item" type="cylinder" size="0.012 0.025" pos="0 0 0.105" mass="0.01" rgba=".1 .6 .2 1"/>
+    </body>
+    <body name="orange_can" pos="2.75 -1.95 0.802">
+      <freejoint/>
+      <geom class="item" type="cylinder" size="0.033 0.06" mass="0.1" rgba="1 .5 .05 1"/>
+    </body>
+    <body name="blue_box" pos="0.45 2.0 0.492">
+      <freejoint/>
+      <geom class="item" type="box" size="0.025 0.04 0.05" mass="0.08" rgba=".15 .25 .8 1"/>
+    </body>
+    <body name="yellow_sponge" pos="-0.5 -2.7 0.616">
+      <freejoint/>
+      <geom class="item" type="box" size="0.02 0.05 0.015" mass="0.03" rgba=".95 .85 .1 1"/>
+    </body>
+    <body name="purple_cup" pos="-2.4 2.55 0.786">
+      <freejoint/>
+      <geom class="item" type="cylinder" size="0.03 0.045" mass="0.05" rgba=".5 .2 .7 1"/>
+    </body>
+  </worldbody>
+</mujoco>

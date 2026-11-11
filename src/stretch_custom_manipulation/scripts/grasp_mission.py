@@ -99,7 +99,7 @@ def parse_executor(status):
             'stop_unconfirmed': field('stop_unconfirmed') == '1',
             'request_id': int(rid.group(1)) if rid else 0,
             'direct': 'PLANNER=DIRECT' in status,
-            'reason': status.split(' reason=', 1)[-1][:240] if ' reason=' in status else ''}
+            'reason': status.split(' reason=', 1)[-1][:1000] if ' reason=' in status else ''}
 
 
 def angle(a, b):
@@ -139,16 +139,29 @@ class GraspMission(Node):
         self.search_head = (p('search_pan', -1.571).value, p('search_tilt', -0.45).value)
         self.drive_head = (p('navigation_pan', 0.0).value, p('navigation_tilt', -0.6).value)
         self.offset = p('pregrasp_offset', 0.10).value
+        # Margin added to the object's extent for the target box that removes it
+        # from the collision map before the approach (m, total per axis).
+        self.target_box_margin = p('target_box_margin', 0.02).value
+        # How far the fingertips reach past the object's near face (m). Read at
+        # each plan: `ros2 param set /grasp_mission finger_insert 0.05`.
+        p('finger_insert', 0.04)
+        # Widest real opening (m), from the gripper calibration in real.yaml.
+        p('max_aperture', gp.MAX_APERTURE)
         # Opening beyond object width + 2 x 1.5 cm; read at each plan, so
         # `ros2 param set /grasp_mission extra_opening` tunes it live.
-        self.extra_opening = p('extra_opening', 0.04).value
+        self.extra_opening = p('extra_opening', 0.01).value
         # auto: side first, top-down only if no side grasp fits; side or top: only that
         # kind. Read at each plan: `ros2 param set /grasp_mission grasp_mode top`.
         p('grasp_mode', 'auto')
-        # Open fully (13 cm), narrower only where a neighbor is closer than the
-        # fingers; false: object width + 3 cm + extra_opening. Read at each plan.
-        p('fully_open', True)
+        # false: object width across the fingers + 2 x 1.5 cm + extra_opening
+        # (the camera sees cans ~1 cm narrower than they are). true: open fully
+        # (13 cm). Both narrower where a neighbor is closer. Read at each plan.
+        p('fully_open', False)
+        # Perception runs only while nobody holds the arm: paused from the
+        # first IK call to the end of the mission.
+        self.pause_perception = p('pause_perception', True).value
         # A valid click starts the mission once a collision-free grasp is planned.
+        # Read at each click: `ros2 param set /grasp_mission auto_start false`.
         self.auto_start = p('auto_start', True).value
         # Carry after the grasp: up, retract the arm, wrist pose, lift height.
         # Fingers closed while the arm travels to the pre-grasp: a smaller
@@ -161,7 +174,9 @@ class GraspMission(Node):
         self.carry_lift = p('carry_lift', 0.4).value
         self.dx_tolerance = p('base_dx_tolerance', 0.01).value
         self.max_dx = p('max_base_correction', 0.5).value
-        self.squeeze = p('close_aperture', -0.02).value
+        # Close to the object's measured width (across the fingers) minus this
+        # (m): a squeeze sized to the object. Read at each grasp.
+        p('close_below_width', 0.01)
         self.min_held = p('min_held_aperture', 0.01).value
         # Closing must move the fingers at least this far, or it did not close.
         self.close_margin = p('min_close_travel', 0.005).value
@@ -256,6 +271,10 @@ class GraspMission(Node):
         self.events_pub = self.create_publisher(String, '~/events', 100)
         self.goal_pub = self.create_publisher(PoseStamped, '/ik_preview/grasp_goal', 10)
         self.prompt_pub = self.create_publisher(Point, '/perception/segment_prompt', 1)
+        self.perception_pub = self.create_publisher(Bool, '/perception/enable', latched)
+        # A mission node that died mid-mission must not leave perception paused.
+        if self.pause_perception:
+            self.perception_pub.publish(Bool(data=True))
         self.box_pub = self.create_publisher(Marker, '/octomap_builder/target_box', latched)
         self.marker_pub = self.create_publisher(MarkerArray, '~/grasps', latched)
         self.debug_pub = self.create_publisher(MarkerArray, '~/debug', latched)
@@ -385,7 +404,7 @@ class GraspMission(Node):
             except MissionError as e:
                 self.say(f'PLAN FAILED: {e.code}: {e}')
                 return
-            if not self.auto_start:
+            if not self.get_parameter('auto_start').value:
                 self.say(f'PLANNED: {len(self.candidates)} grasps for {obs["id"]}; call ~/pick')
                 return
             mission_id = 'click-' + uuid.uuid4().hex[:8]
@@ -593,6 +612,7 @@ class GraspMission(Node):
         self.mission = {'id': mission_id, 'handle': handle, 't0': now, 'stage': 'ACCEPTED',
                         'stage_t0': now, 'motion': False, 'held': 0.0}
         self.event('accepted', observation=self.obs['id'], dry_run=self.dry_run)
+        self.perception(False)
         code, message = 'NONE', ''
         try:
             message = self.pick()
@@ -628,7 +648,13 @@ class GraspMission(Node):
         with self.lock:
             self.mission = None
             self.active = None
+        self.perception(True)
         return r
+
+    def perception(self, on):
+        if self.pause_perception:
+            self.perception_pub.publish(Bool(data=on))
+            self.event('perception', enabled=on)
 
     def safe_stop(self, why):
         """Stop everything this mission may have started and confirm it."""
@@ -699,13 +725,15 @@ class GraspMission(Node):
             self.publish_debug(c)
         # Planned contact: the object leaves the collision map for the approach.
         lo, hi = self.object_base.min(0), self.object_base.max(0)
-        self.set_target_box('base_link', (lo + hi) / 2, hi - lo + 0.02)
+        self.set_target_box('base_link', (lo + hi) / 2, hi - lo + self.target_box_margin)
         time.sleep(0.6)  # next map publication without the object
         self.prepare_arm()
         self.stage('APPROACH')
         self.approach(c)
         self.stage('CLOSE_GRIPPER')
-        held = self.grip(self.squeeze)
+        squeeze = c['width'] - self.get_parameter('close_below_width').value
+        self.event('close_target', width=c['width'], target=squeeze)
+        held = self.grip(squeeze)
         self.mission['held'] = held
         with self.lock:
             effort = self.efforts.get('joint_gripper_finger_left')
@@ -724,7 +752,7 @@ class GraspMission(Node):
         self.carry(c)
         self.stage('VERIFY_HOLD')
         # Squeezing again reports where the fingers stop: still on the object?
-        again = self.grip(self.squeeze)
+        again = self.grip(squeeze)
         self.mission['held'] = again
         with self.lock:
             effort = self.efforts.get('joint_gripper_finger_left')
@@ -915,7 +943,8 @@ class GraspMission(Node):
         scene = self.scene_base()
         rot = np.eye(4)
         rot[:3, :3] = g[:3, :3]
-        if gp.fits(self.object_base, scene, rot, self.offset) is None:
+        if gp.fits(self.object_base, scene, rot, self.offset, self.insert(),
+                   self.max_open()) is None:
             return r, 'fingers do not fit the object at the achieved orientation'
         return r, ''
 
@@ -1003,6 +1032,7 @@ class GraspMission(Node):
         # The segmenter uses its latest image, taken up to one frame before the
         # prompt; anything newer than the end of the last motion is fresh.
         requested = self.get_clock().now() - Duration(seconds=0.25)
+        self.perception(True)
         try:
             self.prompt_pub.publish(Point(x=float(u), y=float(v)))
             self.event('reobserve_requested', pixel=[u, v])
@@ -1016,6 +1046,7 @@ class GraspMission(Node):
                 time.sleep(0.05)
         finally:
             self.reobs_wait = None
+            self.perception(False)
         obs = next(o for o in box if o['stamp'] > requested)
         if not obs['valid'] or obs['confidence'] < self.min_confidence:
             raise MissionError('LOST_TARGET', f'fresh observation unusable: {obs["reason"] or "low confidence"}')
@@ -1025,7 +1056,8 @@ class GraspMission(Node):
             raise MissionError('TARGET_MOVED', f'target moved {shift * 100:.1f} cm since planning')
         self.object_base = obs['points']
         fresh = [x for x in gp.plan_grasps(self.object_base, self.scene_base(), self.offset,
-                                    extra_opening=self.opening_extra())
+                                           insert=self.insert(), extra_opening=self.opening_extra(),
+                                           max_aperture=self.max_open())
                  if x['key'] == c['key']]
         if not fresh:
             raise MissionError('NO_FEASIBLE_GRASP', 'the fresh observation no longer admits the grasp')
@@ -1152,8 +1184,9 @@ class GraspMission(Node):
                                f'selected region is {size.max():.2f} m long, not a single product; '
                                'click on the object itself')
         why, scene = [], self.scene_base()
-        self.candidates = gp.plan_grasps(obj, scene, self.offset,
-                                         extra_opening=self.opening_extra(), why=why)
+        self.candidates = gp.plan_grasps(obj, scene, self.offset, insert=self.insert(),
+                                         extra_opening=self.opening_extra(), why=why,
+                                         max_aperture=self.max_open())
         self.plan_why = why
         if not self.candidates:
             self.save_failed_plan(obj, scene, why)
@@ -1206,9 +1239,15 @@ class GraspMission(Node):
         array.markers.append(line)
         self.debug_pub.publish(array)
 
+    def max_open(self):
+        return self.get_parameter('max_aperture').value
+
+    def insert(self):
+        return self.get_parameter('finger_insert').value
+
     def opening_extra(self):
         if self.get_parameter('fully_open').value:
-            return gp.MAX_APERTURE  # capped to MAX_APERTURE and neighbor clearance
+            return self.max_open()  # capped to the widest opening and neighbor clearance
         return self.get_parameter('extra_opening').value
 
     def publish_candidates(self):

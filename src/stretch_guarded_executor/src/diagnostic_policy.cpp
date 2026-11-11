@@ -11,6 +11,7 @@ namespace stretch_guarded_executor {
 namespace {
 constexpr char kBaseCliff[] = "stretch_driver: Pimu/Cliff";
 constexpr char kPimuTemperature[] = "stretch_driver: Pimu/Temperature";
+constexpr char kWacc[] = "stretch_driver: Wacc/Device";
 using Status = diagnostic_msgs::msg::DiagnosticStatus;
 
 double parseNumberAfter(const std::string& text, const std::string& pattern) {
@@ -51,6 +52,11 @@ void DiagnosticPolicy::validate() const {
       pimu_temperature_warn_max_c > 50.0) {
     throw std::invalid_argument(
         "pimu_temperature_warn_max_c must be finite and between 0.0 and 50.0 C");
+  }
+  if (!std::isfinite(wacc_ax_min) || !std::isfinite(wacc_ax_max) ||
+      wacc_ax_min < 4.0 || wacc_ax_max > 16.0 || wacc_ax_min >= wacc_ax_max) {
+    throw std::invalid_argument(
+        "wacc_ax_min/max must be finite, ordered and within [4.0, 16.0] m/s^2");
   }
   if (!std::isfinite(cliff_range_min) || !std::isfinite(cliff_range_max) ||
       cliff_range_min >= cliff_range_max) {
@@ -93,6 +99,18 @@ DiagnosticDecision DiagnosticPolicy::classify(const Status& status) const {
       result.reason = "bounded temperature exception: measured " + 
           std::to_string(temp) + " C <= supervised ceiling " +
           std::to_string(pimu_temperature_warn_max_c) + " C";
+    }
+  }
+  if (wacc_error_can_warn && status.name == kWacc) {
+    const double ax = parseNumberAfter(status.message, "ax=");
+    if (std::isfinite(ax) && ax >= wacc_ax_min && ax <= wacc_ax_max) {
+      result.effective_level = Status::WARN;
+      result.downgraded = true;
+      std::ostringstream reason;
+      reason << "bounded accelerometer exception: ax " << ax
+             << " within supervised range [" << wacc_ax_min << ","
+             << wacc_ax_max << "] m/s^2 (arm motion)";
+      result.reason = reason.str();
     }
   }
   const bool selected =

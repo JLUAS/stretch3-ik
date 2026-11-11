@@ -1,0 +1,378 @@
+#!/usr/bin/env python3
+"""Text command -> navigate -> detect -> existing grasp mission.
+
+  ros2 topic pub --once /semantic/command std_msgs/String "data: 'grab the red mug in the kitchen'"
+
+Stages (on ~/status, one JSON result per command on ~/result):
+PARSE, LOCATE (OWLv2 over keyframes saved while the robot drove), PLAN (base
+pose with the object on the arm side, from the Nav2 global costmap), NAVIGATE
+(NavigateToPose), LOOK (head at the object), DETECT (live OWLv2, nearest to the
+remembered position), GRASP (the box centre goes to /perception/segment_prompt
+like an operator click; grasp_mission plans and runs the pickup).
+"""
+import json
+import math
+import os
+import threading
+import time
+
+import numpy as np
+import rclpy
+from action_msgs.msg import GoalStatus
+from control_msgs.action import FollowJointTrajectory
+from geometry_msgs.msg import Point, PoseStamped
+from nav2_msgs.action import NavigateToPose
+from nav_msgs.msg import OccupancyGrid
+from rclpy.action import ActionClient
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.duration import Duration
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, qos_profile_sensor_data
+from rclpy.time import Time
+from sensor_msgs.msg import CameraInfo, Image
+from std_msgs.msg import Bool, String
+from stretch_perception_interfaces.msg import ObjectObservation
+from tf2_ros import Buffer, TransformListener
+from trajectory_msgs.msg import JointTrajectoryPoint
+
+from semantic_grasp.detector import Detector
+from semantic_grasp.geometry import upright
+from semantic_grasp.memory import Keyframe, Memory, locate
+from semantic_grasp.pregrasp import pregrasp_poses
+from semantic_grasp.text import parse_command
+
+
+class Failed(Exception):
+    def __init__(self, stage, message):
+        super().__init__(message)
+        self.stage = stage
+
+
+def to_matrix(t):
+    q, p = t.transform.rotation, t.transform.translation
+    x, y, z, w = q.x, q.y, q.z, q.w
+    m = np.eye(4)
+    m[:3, :3] = [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                 [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                 [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
+    m[:3, 3] = [p.x, p.y, p.z]
+    return m
+
+
+def image_array(msg):
+    if msg.encoding in ('rgb8', 'bgr8'):
+        a = np.frombuffer(msg.data, np.uint8).reshape(msg.height, msg.step // 3, 3)[:, :msg.width]
+        return a[..., ::-1].copy() if msg.encoding == 'bgr8' else a.copy()
+    if msg.encoding in ('16UC1', 'mono16'):
+        return np.frombuffer(msg.data, np.uint16).reshape(msg.height, -1)[:, :msg.width] / 1000.0
+    if msg.encoding == '32FC1':
+        return np.frombuffer(msg.data, np.float32).reshape(msg.height, -1)[:, :msg.width].astype(float)
+    raise ValueError(f'unsupported encoding {msg.encoding}')
+
+
+class SemanticGrasp(Node):
+    def __init__(self):
+        super().__init__('semantic_grasp')
+        p = self.declare_parameter
+        self.map_frame = p('map_frame', 'map').value
+        names = p('room_names', ['kitchen', 'living room', 'bedroom']).value
+        b = p('room_bounds', [2.0, 4.0, -3.0, 3.0, -1.5, 2.0, -3.0, 3.0, -4.0, -1.5, -3.0, 3.0]).value
+        self.rooms = {n: ((b[4 * i], b[4 * i + 1]), (b[4 * i + 2], b[4 * i + 3]))
+                      for i, n in enumerate(names)}
+        self.key_move = p('keyframe_min_move', 0.4).value
+        self.key_turn = p('keyframe_min_turn', 0.4).value
+        self.threshold = p('memory_threshold', 0.15).value
+        self.live_threshold = p('live_threshold', 0.08).value
+        self.match_radius = p('match_radius', 0.5).value
+        self.footprint_radius = p('footprint_radius', 0.25).value
+        # Tilt above the object (rad): rgbd perception looks for objects only in
+        # the lower half of the upright image (object_roi_top 0.5), so a centred
+        # object sits on that cutoff; +0.35 (measured) moves it from 0.38 to 0.65 down.
+        self.look_tilt_offset = p('look_tilt_offset', 0.35).value
+        self.grasp_timeout = p('grasp_timeout', 400.0).value
+        self.recording = p('record', True).value
+        # Keyframes survive restarts: loaded here, written on /semantic/save.
+        self.memory_file = os.path.expanduser(p('memory_file', '~/.ros/semantic_memory.npz').value)
+
+        self.detector = Detector()
+        self.memory = Memory(self.detector)
+        if os.path.exists(self.memory_file):
+            self.memory.load(self.memory_file)
+            self.get_logger().info(f'loaded {len(self.memory.frames)} keyframes from {self.memory_file}')
+        self.tf = Buffer(cache_time=Duration(seconds=30))
+        TransformListener(self.tf, self)
+        self.lock = threading.Lock()
+        self.color = self.depth = self.k = None
+        self.costmap = self.map = None
+        self.last_key = None
+        self.observation = None
+        self.mission_result = None
+        self.busy = False
+
+        g = ReentrantCallbackGroup()
+        latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        sub = self.create_subscription
+        sub(Image, '/camera/color/image_raw', lambda m: setattr(self, 'color', m),
+            qos_profile_sensor_data, callback_group=g)
+        sub(Image, '/camera/depth/image_rect_raw', self.on_depth, qos_profile_sensor_data,
+            callback_group=g)
+        sub(CameraInfo, '/camera/depth/camera_info',
+            lambda m: setattr(self, 'k', np.array(m.k).reshape(3, 3)), qos_profile_sensor_data,
+            callback_group=g)
+        sub(OccupancyGrid, '/global_costmap/costmap', lambda m: setattr(self, 'costmap', m), 1,
+            callback_group=g)
+        sub(OccupancyGrid, '/map', lambda m: setattr(self, 'map', m), latched, callback_group=g)
+        sub(ObjectObservation, '/perception/object_observation',
+            lambda m: setattr(self, 'observation', m), 1, callback_group=g)
+        sub(String, '/grasp_mission/result', lambda m: setattr(self, 'mission_result', m.data),
+            latched, callback_group=g)
+        sub(String, '/semantic/command', self.on_command, 1, callback_group=g)
+        sub(Bool, '/semantic/record', lambda m: setattr(self, 'recording', m.data), 1,
+            callback_group=g)
+        sub(Bool, '/semantic/save', self.on_save, 1, callback_group=g)
+        self.status_pub = self.create_publisher(String, '/semantic/status', latched)
+        self.result_pub = self.create_publisher(String, '/semantic/result', latched)
+        self.prompt_pub = self.create_publisher(Point, '/perception/segment_prompt', 1)
+        self.debug_pub = self.create_publisher(Image, '/semantic/debug', 1)
+        self.nav = ActionClient(self, NavigateToPose, '/navigate_to_pose', callback_group=g)
+        self.traj = ActionClient(self, FollowJointTrajectory,
+                                 '/stretch_controller/follow_joint_trajectory', callback_group=g)
+        self.say('IDLE', 'type a command on /semantic/command')
+
+    # ------------------------------------------------------------ helpers
+    def say(self, stage, detail=''):
+        self.get_logger().info(f'{stage}: {detail}')
+        self.status_pub.publish(String(data=json.dumps({'stage': stage, 'detail': detail})))
+
+    def wait(self, future, timeout, what):
+        end = time.monotonic() + timeout
+        while not future.done():
+            if time.monotonic() > end:
+                raise Failed('TIMEOUT', f'{what} timed out after {timeout:.0f} s')
+            time.sleep(0.02)
+        return future.result()
+
+    def cam_pose(self, frame, stamp):
+        try:
+            return to_matrix(self.tf.lookup_transform(self.map_frame, frame, Time.from_msg(stamp),
+                                                      Duration(seconds=0.2)))
+        except Exception:
+            return None
+
+    def robot_pose(self):
+        t = self.tf.lookup_transform(self.map_frame, 'base_link', Time())
+        q = t.transform.rotation
+        return (t.transform.translation.x, t.transform.translation.y,
+                math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z)))
+
+    def frame_now(self):
+        """Latest color + depth as a Keyframe, or None."""
+        c, d = self.color, self.depth
+        if c is None or d is None or self.k is None:
+            return None
+        pose = self.cam_pose(d.header.frame_id, d.header.stamp)
+        if pose is None:
+            return None
+        rgb, depth = image_array(c), image_array(d)
+        if rgb.shape[:2] != depth.shape[:2]:
+            return None
+        return Keyframe(rgb, depth, self.k.copy(), pose)
+
+    # ------------------------------------------------------------ memory
+    def on_depth(self, msg):
+        self.depth = msg
+        if not self.recording or self.busy:
+            return
+        try:
+            x, y, yaw = self.robot_pose()
+        except Exception:
+            return
+        if self.last_key is not None:
+            lx, ly, lyaw = self.last_key
+            turn = abs(math.atan2(math.sin(yaw - lyaw), math.cos(yaw - lyaw)))
+            if math.hypot(x - lx, y - ly) < self.key_move and turn < self.key_turn:
+                return
+        f = self.frame_now()
+        if f is not None:
+            with self.lock:
+                self.memory.add(f)
+            self.last_key = (x, y, yaw)
+            self.get_logger().info(f'keyframe {len(self.memory.frames)} at ({x:.2f}, {y:.2f})')
+
+    def on_save(self, _):
+        with self.lock:
+            self.memory.save(self.memory_file)
+        self.get_logger().info(f'saved {len(self.memory.frames)} keyframes to {self.memory_file}')
+
+    # ------------------------------------------------------------ costmap
+    def cell(self, grid, x, y):
+        i = int((x - grid.info.origin.position.x) / grid.info.resolution)
+        j = int((y - grid.info.origin.position.y) / grid.info.resolution)
+        if 0 <= i < grid.info.width and 0 <= j < grid.info.height:
+            return grid.data[j * grid.info.width + i]
+        return -1
+
+    def base_free(self, x, y, _yaw):
+        g, r = self.costmap, self.footprint_radius
+        if self.cell(g, x, y) < 0 or self.cell(g, x, y) >= 50:
+            return False
+        for a in np.linspace(0, 2 * math.pi, 16, endpoint=False):
+            if not 0 <= self.cell(g, x + r * math.cos(a), y + r * math.sin(a)) < 99:
+                return False
+        return True
+
+    def occupied(self, x, y):
+        return self.cell(self.map, x, y) > 50
+
+    # ------------------------------------------------------------ pipeline
+    def on_command(self, msg):
+        if self.busy:
+            self.say('BUSY', f'ignored {msg.data!r}')
+            return
+        self.busy = True
+        threading.Thread(target=self.run, args=(msg.data,), daemon=True).start()
+
+    def run(self, text):
+        t0 = time.monotonic()
+        result = {'command': text, 'success': False}
+        try:
+            result.update(self.pipeline(text, result))
+            result['success'] = True
+        except Failed as e:
+            result.update(failed_stage=e.stage, message=str(e))
+            self.say('FAILED', f'{e.stage}: {e}')
+        except Exception as e:  # report, never die silently
+            result.update(failed_stage='INTERNAL', message=repr(e))
+            self.get_logger().error(f'internal error: {e!r}')
+        result['duration'] = time.monotonic() - t0
+        self.result_pub.publish(String(data=json.dumps(result)))
+        self.busy = False
+        self.say('IDLE', 'type a command on /semantic/command')
+
+    def pipeline(self, text, result):
+        try:
+            q = parse_command(text, tuple(self.rooms))
+        except ValueError as e:
+            raise Failed('PARSE', str(e))
+        result.update(phrase=q.phrase, room=q.room)
+
+        self.say('LOCATE', f'{q.phrase} in {len(self.memory.frames)} keyframes'
+                 + (f', {q.room}' if q.room else ''))
+        with self.lock:
+            hits = self.memory.query(q.phrase, self.rooms.get(q.room), self.threshold)
+        if not hits:
+            raise Failed('LOCATE', f'never saw {q.phrase}' + (f' in the {q.room}' if q.room else ''))
+        target = hits[0].xyz
+        result.update(memory_score=hits[0].score, memory_xyz=[float(v) for v in target])
+
+        self.say('PLAN', f'object at ({target[0]:.2f}, {target[1]:.2f}, {target[2]:.2f})')
+        if self.costmap is None or self.map is None:
+            raise Failed('PLAN', 'no map or global costmap yet')
+        rx, ry, _ = self.robot_pose()
+        poses = pregrasp_poses(target[:2], (rx, ry), self.base_free, self.occupied)
+        if not poses:
+            raise Failed('PLAN', 'no free base pose within arm reach')
+
+        for attempt, pose in enumerate(poses[:3]):
+            self.say('NAVIGATE', f'to ({pose[0]:.2f}, {pose[1]:.2f}, {math.degrees(pose[2]):.0f} deg)'
+                     f', option {attempt + 1}')
+            if self.navigate(pose):
+                break
+        else:
+            raise Failed('NAVIGATE', 'Nav2 failed for the 3 best base poses')
+        rx, ry, ryaw = self.robot_pose()
+        result['base_pose'] = [rx, ry, ryaw]
+
+        self.say('LOOK', 'head at the object')
+        self.look_at(target)
+        time.sleep(1.5)  # fresh frames after the head stops
+
+        self.say('DETECT', q.phrase)
+        f = self.frame_now()
+        if f is None:
+            raise Failed('DETECT', 'no camera frame with a pose')
+        best = None
+        for score, box_up in self.detector.detect(upright(f.rgb), q.phrase, self.live_threshold):
+            loc = locate(f, box_up)
+            if loc is not None and np.linalg.norm(loc[0][:2] - target[:2]) < self.match_radius:
+                best = (score, loc)
+                break
+        if best is None:
+            raise Failed('DETECT', f'{q.phrase} not in view near the remembered position')
+        (score, (xyz, box)) = best
+        result.update(live_score=score, live_xyz=[float(v) for v in xyz])
+        u, v = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+
+        self.say('GRASP', f'prompt at pixel ({u:.0f}, {v:.0f})')
+        self.observation, self.mission_result = None, None
+        before = time.monotonic()
+        self.prompt_pub.publish(Point(x=float(u), y=float(v)))
+        while self.observation is None:
+            if time.monotonic() - before > 15:
+                raise Failed('GRASP', 'perception gave no observation for the prompt')
+            time.sleep(0.1)
+        if not self.observation.valid:
+            raise Failed('GRASP', f'perception rejected the prompt: {self.observation.reason}')
+        while self.mission_result is None:
+            if time.monotonic() - before > self.grasp_timeout:
+                raise Failed('GRASP', 'grasp mission gave no result')
+            time.sleep(0.2)
+        r = json.loads(self.mission_result)
+        result['grasp'] = r
+        if not r.get('success'):
+            raise Failed('GRASP', f"{r.get('error_code')} at {r.get('failed_stage')}: {r.get('message')}")
+        self.say('DONE', f'{q.phrase} picked up')
+        return result
+
+    def navigate(self, pose):
+        if not self.nav.wait_for_server(timeout_sec=5):
+            raise Failed('NAVIGATE', 'Nav2 navigate_to_pose unavailable')
+        goal = NavigateToPose.Goal()
+        goal.pose = PoseStamped()
+        goal.pose.header.frame_id = self.map_frame
+        goal.pose.header.stamp = self.get_clock().now().to_msg()
+        goal.pose.pose.position.x, goal.pose.pose.position.y = float(pose[0]), float(pose[1])
+        goal.pose.pose.orientation.z = math.sin(pose[2] / 2)
+        goal.pose.pose.orientation.w = math.cos(pose[2] / 2)
+        handle = self.wait(self.nav.send_goal_async(goal), 10, 'Nav2 goal')
+        if not handle.accepted:
+            return False
+        return self.wait(handle.get_result_async(), 240, 'Nav2').status == GoalStatus.STATUS_SUCCEEDED
+
+    def look_at(self, target):
+        """Pan/tilt so the head camera points at a map point."""
+        t = self.tf.lookup_transform('base_link', self.map_frame, Time())
+        p = to_matrix(t) @ np.append(target, 1.0)
+        c = self.tf.lookup_transform('base_link', 'link_head_pan', Time()).transform.translation
+        dx, dy, dz = p[0] - c.x, p[1] - c.y, p[2] - (c.z + 0.1)
+        pan = math.atan2(dy, dx)
+        tilt = math.atan2(dz, math.hypot(dx, dy))  # negative looks down
+        goal = FollowJointTrajectory.Goal()
+        goal.trajectory.joint_names = ['joint_head_pan', 'joint_head_tilt']
+        pt = JointTrajectoryPoint()
+        pt.positions = [pan, max(-1.5, min(0.4, tilt + self.look_tilt_offset))]
+        pt.time_from_start = Duration(seconds=1.5).to_msg()
+        goal.trajectory.points.append(pt)
+        if not self.traj.wait_for_server(timeout_sec=3):
+            raise Failed('LOOK', 'driver trajectory action unavailable')
+        handle = self.wait(self.traj.send_goal_async(goal), 5, 'head goal')
+        if not handle.accepted:
+            raise Failed('LOOK', 'head goal rejected')
+        if self.wait(handle.get_result_async(), 10, 'head motion').status != GoalStatus.STATUS_SUCCEEDED:
+            raise Failed('LOOK', 'head goal did not succeed')
+
+
+def main():
+    rclpy.init()
+    node = SemanticGrasp()
+    ex = MultiThreadedExecutor(num_threads=4)
+    ex.add_node(node)
+    try:
+        ex.spin()
+    except KeyboardInterrupt:
+        pass
+
+
+if __name__ == '__main__':
+    main()

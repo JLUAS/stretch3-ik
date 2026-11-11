@@ -18,7 +18,7 @@ install(DIRECTORY launch config rviz docs scripts worlds DESTINATION share/${PRO
 install(PROGRAMS scripts/camera_scan.py scripts/autonomous_mission.py
   scripts/sim_gripper.py scripts/pick_state_machine.py scripts/place_state_machine.py
   scripts/grasp_mission.py scripts/grasp_planning.py scripts/gripper_bridge.py
-  scripts/object_localizer.py
+  scripts/object_localizer.py scripts/grasp_panel.py scripts/sim_aligned_depth.py
   DESTINATION lib/${PROJECT_NAME})
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
@@ -28,8 +28,11 @@ if(BUILD_TESTING)
   ament_add_pytest_test(test_place_state_machine test/test_place_state_machine.py)
   ament_add_pytest_test(test_grasp_planning test/test_grasp_planning.py)
   ament_add_pytest_test(test_grasp_mission test/test_grasp_mission.py)
+  ament_add_pytest_test(test_sim_aligned_depth test/test_sim_aligned_depth.py)
   ament_add_pytest_test(test_perception_chain test/test_perception_chain.py)
   ament_add_pytest_test(test_object_localizer test/test_object_localizer.py)
+  ament_add_pytest_test(test_grasp_panel test/test_grasp_panel.py)
+  ament_add_pytest_test(test_gripper_bridge test/test_gripper_bridge.py)
   ament_add_pytest_test(test_perception_launch test/test_perception_launch.py)
   add_launch_test(test/test_launch_sim.py)
 endif()

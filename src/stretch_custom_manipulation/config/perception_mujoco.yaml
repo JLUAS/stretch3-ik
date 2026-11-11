@@ -1,0 +1,7 @@
+# MuJoCo house (scenario:=mujoco): the sim head camera streams 424x240, a
+# quarter of the robot's 848x480 pixels, so pixel-count thresholds scale by 1/4.
+# Measured 2026-11-10: at 500 the red mug on the counter (388 px) was rejected.
+rgbd_perception:
+  ros__parameters:
+    segmentation.min_object_pixels: 125
+    segmentation.split_min_child_pixels: 125
